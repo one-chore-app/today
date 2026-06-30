@@ -732,8 +732,8 @@ async function loadAllData() {
     db.from('chores').select('*').order('sort_order', { ascending: true }),
     db.from('completions').select('*').order('completed_date', { ascending: false }),
   ]);
-  if (choresRes.error) console.error('loadChores error', choresRes.error);
-  if (completionsRes.error) console.error('loadCompletions error', completionsRes.error);
+  if (choresRes.error) console.error('loadChores error', JSON.stringify(choresRes.error));
+  if (completionsRes.error) console.error('loadCompletions error', JSON.stringify(completionsRes.error));
   chores = choresRes.data || [];
   allCompletions = completionsRes.data || [];
 }
@@ -951,9 +951,9 @@ async function toggleComplete(item, isCurrentlyCompleted) {
     const newCompletion = { id: 'local-' + Date.now(), chore_id: item.id, name: item.name, category: item.category, completed_date: todayStr() };
     if (db) {
       const { data, error } = await db.from('completions').insert([{ chore_id: item.id, name: item.name, category: item.category, completed_date: todayStr() }]).select();
-      if (error) { console.error('insert completion error', error); return; }
+      if (error) { console.error('insert completion error', JSON.stringify(error)); return; }
       const { error: delErr } = await db.from('chores').delete().eq('id', item.id);
-      if (delErr) { console.error('delete chore error', delErr); return; }
+      if (delErr) { console.error('delete chore error', JSON.stringify(delErr)); return; }
       allCompletions.unshift(data[0]);
     } else {
       allCompletions.unshift(newCompletion);
@@ -963,9 +963,9 @@ async function toggleComplete(item, isCurrentlyCompleted) {
     const newChore = { id: 'local-' + Date.now(), name: item.name, category: item.category };
     if (db) {
       const { data, error } = await db.from('chores').insert([{ name: item.name, category: item.category }]).select();
-      if (error) { console.error('insert chore error', error); return; }
+      if (error) { console.error('insert chore error', JSON.stringify(error)); return; }
       const { error: delErr } = await db.from('completions').delete().eq('id', item.id);
-      if (delErr) { console.error('delete completion error', delErr); return; }
+      if (delErr) { console.error('delete completion error', JSON.stringify(delErr)); return; }
       chores.unshift(data[0]);
     } else {
       chores.unshift(newChore);
