@@ -498,6 +498,10 @@ body {
 }
 
 .task-row-wrap .task-row {
+  touch-action: pan-y;
+}
+
+.task-row-wrap .task-row.dragging {
   touch-action: none;
 }
 
@@ -643,7 +647,7 @@ body {
           <div class="streak"><span id="streakCount">0</span> Day Streak</div>
         </div>
         <div class="progress-label">Daily Progress</div>
-        <p class="progress-text" id="progressText">You haven't completed any tasks yet today. Get started ✅</p>
+        <p class="progress-text" id="progressText">You haven't completed any tasks yet today. <span style="white-space:nowrap">Get started ✅</span></p>
       </div>
 
       <div class="card card-completed" id="completedCard">
@@ -877,17 +881,26 @@ function renderTodayView() {
     return pick;
   }
 
+  // Wrap the closer in a nowrap span so the last word and emoji always
+  // stay on the same line — prevents a lone emoji dangling as a widow.
+  function nowrap(str) {
+    // Find the last space and wrap everything after it with the preceding word
+    const lastSpace = str.lastIndexOf(' ', str.lastIndexOf(' ') - 1);
+    if (lastSpace === -1) return `<span style="white-space:nowrap">${str}</span>`;
+    return str.slice(0, lastSpace) + `&nbsp;<span style="white-space:nowrap">${str.slice(lastSpace + 1)}</span>`;
+  }
+
   let progressMsg;
   if (count === 0) {
     const closer = pickRandom(ZERO_CLOSERS, 'ones_last_zero');
-    progressMsg = `You haven't completed any tasks yet today. ${closer}`;
+    progressMsg = `You haven't completed any tasks yet today. ${nowrap(closer)}`;
   } else if (count === 1) {
-    progressMsg = `You've completed 1 task today! You're doing great 👍`;
+    progressMsg = `You've completed 1 task today! ${nowrap("You're doing great 👍")}`;
   } else {
     const closer = pickRandom(MULTI_CLOSERS, 'ones_last_multi');
-    progressMsg = `You've completed ${count} tasks today! ${closer}`;
+    progressMsg = `You've completed ${count} tasks today! ${nowrap(closer)}`;
   }
-  document.getElementById('progressText').textContent = progressMsg;
+  document.getElementById('progressText').innerHTML = progressMsg;
 
   const cList = document.getElementById('completedList');
   const cEmpty = document.getElementById('completedEmpty');
@@ -1294,6 +1307,7 @@ function attachSwipeAndDrag(wrap, row, item) {
   function startDrag(e) {
     mode = 'drag';
     row.classList.add('dragging');
+    row.style.touchAction = 'none';
     // Disable text selection for the entire document during drag
     document.body.style.userSelect = 'none';
     document.body.style.webkitUserSelect = 'none';
@@ -1327,10 +1341,11 @@ function attachSwipeAndDrag(wrap, row, item) {
   }
 
   function endDrag() {
-    // Always restore text selection
+    // Always restore text selection and touch-action
     document.body.style.userSelect = '';
     document.body.style.webkitUserSelect = '';
     row.classList.remove('dragging');
+    row.style.touchAction = '';
     row.style.position = ''; row.style.left = ''; row.style.top = ''; row.style.width = ''; row.style.zIndex = '';
     const list = document.getElementById('choresList');
     // If placeholder is still in DOM, insert wrap before it; otherwise append to list
