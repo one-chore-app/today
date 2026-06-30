@@ -43,7 +43,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: #fff;
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   justify-content: center;
 }
@@ -51,8 +51,8 @@ body {
 .app {
   width: 100%;
   max-width: 480px;
-  min-height: 100vh;
-  padding: 24px 8px 8px;
+  min-height: 100dvh;
+  padding: 23px 8px 8px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -64,6 +64,7 @@ body {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 23px;
+  padding: 0 16px;
 }
 
 .header h1 {
@@ -169,7 +170,7 @@ body {
 .progress-text {
   font-size: 28px;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.18;
   margin: 0;
 }
 
@@ -506,14 +507,14 @@ body {
 .login-screen {
   display: flex;
   justify-content: center;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .login-shell {
   width: 100%;
   max-width: 480px;
-  min-height: 100vh;
-  padding: 24px 8px 8px;
+  min-height: 100dvh;
+  padding: 23px 8px 8px;
   display: flex;
   flex-direction: column;
 }
@@ -613,7 +614,7 @@ body {
           <div class="streak"><span id="streakCount">0</span> Day Streak</div>
         </div>
         <div class="progress-label">Daily Progress</div>
-        <p class="progress-text" id="progressText">You haven't completed any tasks yet today.</p>
+        <p class="progress-text" id="progressText">You haven't completed any tasks yet today. Get started ✅</p>
       </div>
 
       <div class="card card-completed" id="completedCard">
@@ -816,11 +817,48 @@ function renderTodayView() {
 
   const tc = todayCompletions();
   const count = tc.length;
-  document.getElementById('progressText').textContent = count === 0
-    ? "You haven't completed any tasks yet today."
-    : count === 1
-      ? "You have completed 1 task today. You're doing great 👍"
-      : `You have completed ${count} tasks today. You're doing great 👍`;
+  const ZERO_CLOSERS = [
+    'Get started ✅',
+    'Pick one thing 👆',
+    'Ready when you are 🙌',
+    'Even one counts 💛',
+    'You\'ve got this 🫶',
+    'The house is watching 👀',
+    'Your future self is rooting for you 🤝',
+  ];
+
+  const MULTI_CLOSERS = [
+    'Keep going 🎉',
+    'You\'re crushing it 🙌',
+    'Keep it up! 💪',
+    'Look at you go! 🌟',
+    'The house thanks you 🏠',
+    'Building good habits ☀️',
+    'Who\'s productive? You are. 😎',
+    'You showed up. That matters 🫶',
+    'Future you says thanks 🤝',
+  ];
+
+  // Pick a random closer, but never repeat the last one shown
+  function pickRandom(list, avoidKey) {
+    const stored = sessionStorage.getItem(avoidKey);
+    const pool = list.filter(s => s !== stored);
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    sessionStorage.setItem(avoidKey, pick);
+    return pick;
+  }
+
+  let progressMsg;
+  if (count === 0) {
+    const closer = pickRandom(ZERO_CLOSERS, 'ones_last_zero');
+    progressMsg = `You haven't completed any tasks yet today. ${closer}`;
+  } else if (count === 1) {
+    progressMsg = `You've completed 1 task today! You're doing great 👍`;
+  } else {
+    const closer = pickRandom(MULTI_CLOSERS, 'ones_last_multi');
+    progressMsg = `You've completed ${count} tasks today! ${closer}`;
+  }
+  document.getElementById('progressText').textContent = progressMsg;
 
   const cList = document.getElementById('completedList');
   const cEmpty = document.getElementById('completedEmpty');
@@ -855,7 +893,8 @@ function fitTodayBacklogToViewport() {
   // scroll normally) — a min-height chain doesn't reliably constrain a
   // descendant's max size, so overflow:hidden never actually clipped.
   const top = card.getBoundingClientRect().top;
-  card.style.height = Math.max(window.innerHeight - top - 8, 80) + 'px';
+  const viewportHeight = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+  card.style.height = Math.max(viewportHeight - top - 8, 80) + 'px';
 
   if (chores.length === 0) {
     bEmpty.hidden = false;
@@ -892,12 +931,18 @@ function fitTodayBacklogToViewport() {
 }
 
 let resizeTimer = null;
-window.addEventListener('resize', () => {
+function onViewportChange() {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
     if (currentViewName() === 'today') fitTodayBacklogToViewport();
   }, 150);
-});
+}
+window.addEventListener('resize', onViewportChange);
+// Mobile browsers fire visualViewport resize when the URL bar appears/disappears
+// rather than window resize — this is what makes 100vh unreliable on mobile.
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', onViewportChange);
+}
 
 // The icon font and Satoshi load asynchronously; if they swap in after our
 // initial measurement, row heights can shift and push the card past the
@@ -1017,7 +1062,7 @@ function getAllCategoryNames() {
   return [...set].sort();
 }
 function closeDropdown() {
-  if (openDropdownEl) { openDropdownEl.remove(); openDropdownEl = null; document.removeEventListener('click', closeDropdown); }
+  if (openDropdownEl) { openDropdownEl.remove(); openDropdownEl = null; }
 }
 function openCategoryDropdown(tagEl, item, isCompleted, onSaved) {
   closeDropdown();
@@ -1039,6 +1084,11 @@ function openCategoryDropdown(tagEl, item, isCompleted, onSaved) {
   addBtn.addEventListener('mousedown', (e) => e.preventDefault());
   addBtn.addEventListener('click', async (e) => { e.stopPropagation(); const val = input.value.trim(); if (!val) return; await setCategory(item, val, isCompleted, tagEl); closeDropdown(); });
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addBtn.click(); });
+  // Clicking into the text input must not close the dropdown or end an
+  // in-progress name edit. Stop the mousedown so the name contenteditable
+  // doesn't lose focus, then manually focus the input on click instead.
+  input.addEventListener('mousedown', (e) => e.preventDefault());
+  input.addEventListener('click', (e) => { e.stopPropagation(); input.focus(); });
   newCatWrap.appendChild(input);
   newCatWrap.appendChild(addBtn);
   dropdown.appendChild(newCatWrap);
@@ -1047,7 +1097,16 @@ function openCategoryDropdown(tagEl, item, isCompleted, onSaved) {
   dropdown.style.top = (rect.bottom + window.scrollY + 6) + 'px';
   dropdown.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 180) + 'px';
   openDropdownEl = dropdown;
-  setTimeout(() => document.addEventListener('click', closeDropdown), 0);
+
+  // Only close when clicking genuinely outside the dropdown.
+  // Using mousedown (not click) so we intercept before any focus change.
+  const onOutsideClick = (e) => {
+    if (!dropdown.contains(e.target) && e.target !== tagEl) {
+      closeDropdown();
+      document.removeEventListener('mousedown', onOutsideClick);
+    }
+  };
+  setTimeout(() => document.addEventListener('mousedown', onOutsideClick), 0);
 }
 async function setCategory(item, newCategory, isCompleted, tagEl) {
   item.category = newCategory;
