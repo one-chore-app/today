@@ -9,13 +9,13 @@
 <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap">
 <style>
 :root {
-  --bg: #19181D;
+  --bg: #231f20;
   --white: #FFFFFF;
   --lavender: #CCD6FF;
   --olive: #776510;
   --yellow: #FFF700;
   --blue: #003DFF;
-  --ink: #19181D;
+  --ink: #231f20;
   --radius: 30px;
   font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -312,6 +312,32 @@ body {
   flex-shrink: 0;
 }
 
+/* Chores + History cards: fixed viewport height, list scrolls inside */
+.card-viewport-fit {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.card-viewport-fit .section-label {
+  flex-shrink: 0;
+}
+
+.viewport-scroll-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  /* Prevent text selection during drag */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.card-viewport-fit .bottom-row {
+  margin-top: auto;
+  padding-top: 20px;
+  flex-shrink: 0;
+}
+
 .more-link {
   font-size: 14px;
   font-weight: 700;
@@ -505,9 +531,11 @@ body {
 }
 
 .login-screen {
+  width: 100%;
   display: flex;
   justify-content: center;
   min-height: 100dvh;
+  background: var(--bg);
 }
 
 .login-shell {
@@ -517,6 +545,7 @@ body {
   padding: 23px 8px 8px;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .login-middle {
@@ -552,7 +581,7 @@ body {
 
 .login-enter-btn {
   width: 210px;
-  background: var(--yellow);
+  background: var(--lavender);
   color: var(--ink);
   border: none;
   border-radius: 999px;
@@ -644,9 +673,9 @@ body {
 
   <!-- ===================== CHORES (FULL BACK LOG) VIEW ===================== -->
   <div class="view" id="view-chores" hidden>
-    <div class="card card-backlog">
+    <div class="card card-backlog card-viewport-fit">
       <div class="section-label">Back Log</div>
-      <div id="choresList"></div>
+      <div class="viewport-scroll-list" id="choresList"></div>
       <div class="empty-state" id="choresEmpty" hidden>Your back log is empty. Tap + to add a chore.</div>
 
       <div class="bottom-row">
@@ -661,9 +690,9 @@ body {
 
   <!-- ===================== HISTORY VIEW ===================== -->
   <div class="view" id="view-history" hidden>
-    <div class="card card-backlog">
+    <div class="card card-backlog card-viewport-fit">
       <div class="section-label">History</div>
-      <div id="historyList"></div>
+      <div class="viewport-scroll-list" id="historyList"></div>
       <div class="empty-state" id="historyEmpty" hidden>Nothing completed yet. Once you check off a chore, it'll show up here.</div>
 
       <div class="bottom-row">
@@ -689,14 +718,14 @@ function todayStr() { return new Date().toISOString().slice(0, 10); }
 
 /* ====================== AUTH ====================== */
 function checkAuth() {
-  if (sessionStorage.getItem('ones_unlocked') === 'true') showApp();
+  if (localStorage.getItem('ones_unlocked') === 'true') showApp();
   else document.getElementById('loginScreen').hidden = false;
 }
 document.getElementById('loginBtn').addEventListener('click', attemptLogin);
 document.getElementById('passwordInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptLogin(); });
 function attemptLogin() {
   const val = document.getElementById('passwordInput').value;
-  if (val === APP_PASSWORD) { sessionStorage.setItem('ones_unlocked', 'true'); showApp(); }
+  if (val === APP_PASSWORD) { localStorage.setItem('ones_unlocked', 'true'); showApp(); }
   else document.getElementById('loginError').textContent = 'Incorrect password.';
 }
 async function showApp() {
@@ -934,7 +963,10 @@ let resizeTimer = null;
 function onViewportChange() {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
-    if (currentViewName() === 'today') fitTodayBacklogToViewport();
+    const view = currentViewName();
+    if (view === 'today') fitTodayBacklogToViewport();
+    else if (view === 'chores') fitCardToViewport('#view-chores .card-viewport-fit');
+    else if (view === 'history') fitCardToViewport('#view-history .card-viewport-fit');
   }, 150);
 }
 window.addEventListener('resize', onViewportChange);
@@ -1134,7 +1166,16 @@ async function addNewChore() {
   chores.push({ id: 'local-' + Date.now(), name: 'New Item', category: '' });
 }
 
+function fitCardToViewport(cardSelector) {
+  const card = document.querySelector(cardSelector);
+  if (!card) return;
+  const top = card.getBoundingClientRect().top;
+  const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  card.style.height = Math.max(viewportHeight - top - 8, 80) + 'px';
+}
+
 function renderChoresView() {
+  fitCardToViewport('#view-chores .card-viewport-fit');
   const list = document.getElementById('choresList');
   const empty = document.getElementById('choresEmpty');
   list.innerHTML = '';
@@ -1243,7 +1284,7 @@ function attachSwipeAndDrag(wrap, row, item) {
         setTimeout(() => { row.style.transition = ''; }, 200);
       }
     } else if (mode === 'drag') {
-      endDrag(e);
+      endDrag();
     }
     mode = null;
   }
@@ -1253,6 +1294,9 @@ function attachSwipeAndDrag(wrap, row, item) {
   function startDrag(e) {
     mode = 'drag';
     row.classList.add('dragging');
+    // Disable text selection for the entire document during drag
+    document.body.style.userSelect = 'none';
+    document.body.style.webkitUserSelect = 'none';
     const rect = row.getBoundingClientRect();
     dragStartTop = rect.top;
     row.style.width = rect.width + 'px';
@@ -1269,11 +1313,6 @@ function attachSwipeAndDrag(wrap, row, item) {
   }
 
   function updateDrag(e) {
-    // Position is driven purely by pointer delta from the drag's start point —
-    // never by the placeholder's current (reflowing) position. Reading the
-    // placeholder's live rect here caused a feedback loop (the row's position
-    // depended on the placeholder, whose position depended on the row), which
-    // is what made dragging feel jittery/wonky.
     const dy = e.clientY - startY;
     row.style.top = (dragStartTop + dy) + 'px';
 
@@ -1287,14 +1326,22 @@ function attachSwipeAndDrag(wrap, row, item) {
     if (!inserted) list.appendChild(placeholder);
   }
 
-  function endDrag(e) {
+  function endDrag() {
+    // Always restore text selection
+    document.body.style.userSelect = '';
+    document.body.style.webkitUserSelect = '';
     row.classList.remove('dragging');
     row.style.position = ''; row.style.left = ''; row.style.top = ''; row.style.width = ''; row.style.zIndex = '';
     const list = document.getElementById('choresList');
-    list.insertBefore(wrap, placeholder);
-    wrap.appendChild(row);
-    placeholder.remove();
-    placeholder = null;
+    // If placeholder is still in DOM, insert wrap before it; otherwise append to list
+    if (placeholder && placeholder.parentNode === list) {
+      list.insertBefore(wrap, placeholder);
+    } else if (!wrap.parentNode) {
+      list.appendChild(wrap);
+    }
+    // Ensure row is back inside wrap (it was detached to document.body)
+    if (row.parentNode !== wrap) wrap.appendChild(row);
+    if (placeholder) { placeholder.remove(); placeholder = null; }
     const newOrder = [...list.children].map(w => w.dataset.id);
     chores.sort((a, b) => newOrder.indexOf(String(a.id)) - newOrder.indexOf(String(b.id)));
     persistOrder();
@@ -1319,6 +1366,7 @@ async function deleteItem(item, wrap) {
 
 /* ====================== HISTORY VIEW ====================== */
 function renderHistoryView() {
+  fitCardToViewport('#view-history .card-viewport-fit');
   const list = document.getElementById('historyList');
   const empty = document.getElementById('historyEmpty');
   list.innerHTML = '';
