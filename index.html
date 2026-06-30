@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ones</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block">
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap">
+<style>
+:root {
+  --bg: #19181D;
+  --white: #FFFFFF;
+  --lavender: #CCD6FF;
+  --olive: #776510;
+  --yellow: #FFF700;
+  --blue: #003DFF;
+  --ink: #19181D;
+  --radius: 30px;
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+
+.app {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  padding: 24px 8px 8px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 23px;
+}
+
+.header h1 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.35;
+  color: var(--white);
+}
+
+.header h1 strong {
+  font-weight: 500;
+}
+
+.header h1 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.logo-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid var(--white);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 500;
+  flex-shrink: 0;
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+}
+
+.view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Cards stack */
+.cards-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+}
+
+.card {
+  border-radius: var(--radius);
+  padding: 20px 16px;
+}
+
+/* Progress card */
+.card-progress {
+  background: var(--lavender);
+  color: var(--ink);
+}
+
+.progress-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  margin-bottom: 32px;
+}
+
+.progress-date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #5a5a6e;
+  font-weight: 500;
+}
+
+.progress-date .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--ink);
+}
+
+.progress-date .date-num {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.streak {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.progress-label {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--ink);
+  opacity: 1;
+}
+
+.progress-text {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
+}
+
+/* Completed card */
+.card-completed {
+  background: var(--olive);
+  color: var(--white);
+}
+
+.section-label {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  opacity: 0.9;
+}
+
+.card-backlog .section-label {
+  color: var(--ink);
+  opacity: 1;
+}
+
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 5px 0;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  touch-action: pan-y;
+}
+
+.check-circle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.completed-row .check-circle {
+  color: var(--yellow);
+}
+
+.backlog-row .check-circle {
+  color: var(--blue);
+}
+
+.history-row .check-circle {
+  color: var(--blue);
+}
+
+.task-name {
+  font-size: 18px;
+  font-weight: 500;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-name[contenteditable="true"] {
+  outline: none;
+  background: transparent;
+  border-bottom: 1.5px dotted #6FA1FF;
+  flex: 1 1 auto;
+}
+
+.tag {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: none;
+}
+
+.tag.placeholder-tag {
+  background: transparent;
+  border: 1.5px dashed var(--ink);
+  color: var(--ink);
+  opacity: 0.6;
+}
+
+.completed-row .tag {
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.backlog-row .tag, .history-row .tag {
+  background: var(--lavender);
+  color: var(--ink);
+}
+
+/* Plain back log card (no notch) */
+.card-backlog {
+  background: var(--white);
+  color: var(--ink);
+  position: relative;
+}
+
+.backlog-row .task-name, .history-row .task-name {
+  color: var(--ink);
+}
+
+.bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* Today view's Back Log card always stretches to the bottom of the
+   viewport, regardless of how many (or how few) chores are in it.
+   Chores/History pages intentionally do NOT use this — they show the
+   full list with normal page scrolling instead. */
+.card-backlog-today {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.card-backlog-today .section-label {
+  flex-shrink: 0;
+}
+
+.today-backlog-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.card-backlog-today .bottom-row {
+  margin-top: auto;
+  padding-top: 20px;
+  flex-shrink: 0;
+}
+
+.more-link {
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline;
+  color: var(--ink);
+  cursor: pointer;
+  flex: 1;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 0;
+}
+
+.pill-btn {
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  background: transparent;
+  border-radius: 999px;
+  padding: 6px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.fab-add {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: var(--yellow);
+  color: var(--ink);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.fab-add .plus-icon {
+  width: 26px;
+  height: 26px;
+  color: var(--ink);
+}
+
+.restore-icon {
+  font-size: 20px;
+  color: var(--ink);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+/* Category dropdown */
+.tag-dropdown {
+  position: absolute;
+  background: #fff;
+  color: var(--ink);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  padding: 6px;
+  z-index: 50;
+  min-width: 160px;
+}
+
+.tag-dropdown button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 8px 14px;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.tag-dropdown button:last-of-type {
+  margin-bottom: 0;
+}
+
+.tag-dropdown button:hover {
+  background: var(--lavender);
+}
+
+.tag-dropdown .new-cat-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0 0;
+  border-top: 1px solid #eee;
+  margin-top: 4px;
+}
+
+.tag-dropdown .new-cat-input input {
+  flex: 1;
+  border: 1.5px solid #ddd;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 14px;
+  min-width: 0;
+}
+
+.tag-dropdown .new-cat-input button {
+  width: auto;
+  margin-bottom: 0;
+  background: transparent;
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 6px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tag-dropdown .new-cat-input button:hover {
+  background: transparent;
+}
+
+.empty-state {
+  font-size: 14px;
+  color: #8a8a96;
+  padding: 12px 0;
+}
+
+.section-label ~ .empty-state {
+  padding-top: 2px;
+}
+
+.today-backlog-scroll .empty-state {
+  padding-top: 2px;
+}
+
+.card-backlog .empty-state {
+  color: #9a9aa5;
+}
+
+.card-completed .empty-state {
+  color: var(--white);
+  opacity: 0.6;
+}
+
+/* Swipe-to-delete */
+.task-row-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.task-row-wrap .task-row {
+  touch-action: none;
+}
+
+.delete-bg {
+  position: absolute;
+  inset: 0;
+  background: #d33;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 20px;
+  border-radius: 12px;
+}
+
+.delete-bg .material-symbols-outlined {
+  color: #fff;
+  font-size: 22px;
+}
+
+.task-row.dragging {
+  opacity: 0.85;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  background: var(--white);
+  z-index: 10;
+  position: relative;
+}
+
+.drag-placeholder {
+  background: #eee;
+  border-radius: 12px;
+}
+
+.login-screen {
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.login-shell {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  padding: 24px 8px 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-middle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.login-screen input {
+  width: 210px;
+  text-align: center;
+  background: transparent;
+  border: 1.5px solid var(--white);
+  color: var(--white);
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-size: 18px;
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.login-screen input::placeholder {
+  color: var(--white);
+  opacity: 1;
+}
+
+.login-screen input:focus {
+  outline: none;
+}
+
+.login-enter-btn {
+  width: 210px;
+  background: var(--yellow);
+  color: var(--ink);
+  border: none;
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.login-error {
+  color: #ff6b6b;
+  font-size: 14px;
+  min-height: 18px;
+}
+
+[hidden] { display: none !important; }
+
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-shell">
+
+    <div class="header">
+      <h1>Hi 👋 <strong>Shelby</strong>!<br>Welcome back.</h1>
+      <div class="logo-circle">1</div>
+    </div>
+
+    <div class="login-middle">
+      <input type="password" id="passwordInput" placeholder="Password" autocomplete="off">
+      <button class="login-enter-btn" id="loginBtn">Enter</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div class="app" id="mainApp" hidden>
+
+  <div class="header">
+    <h1><a href="#today" data-nav="today">Hi 👋 <strong id="userName">Shelby</strong>!<br>Welcome back.</a></h1>
+    <a class="logo-circle" href="#today" data-nav="today">1</a>
+  </div>
+
+  <!-- ===================== TODAY VIEW ===================== -->
+  <div class="view" id="view-today">
+    <div class="cards-wrap">
+
+      <div class="card card-progress">
+        <div class="progress-top">
+          <div class="progress-date">
+            <span class="material-symbols-outlined">calendar_month</span>
+            <span class="date-num" id="todayDate">--</span>
+          </div>
+          <div class="streak"><span id="streakCount">0</span> Day Streak</div>
+        </div>
+        <div class="progress-label">Daily Progress</div>
+        <p class="progress-text" id="progressText">You haven't completed any tasks yet today.</p>
+      </div>
+
+      <div class="card card-completed" id="completedCard">
+        <div class="section-label">Completed Tasks</div>
+        <div id="completedList"></div>
+        <div class="empty-state" id="completedEmpty" hidden>Nothing completed yet today. Tap a task below to check it off.</div>
+      </div>
+
+      <div class="card card-backlog card-backlog-today">
+        <div class="section-label">Back Log</div>
+        <div class="today-backlog-scroll">
+          <div id="todayBacklogList"></div>
+          <div class="empty-state" id="todayBacklogEmpty" hidden>Your back log is empty. Add a chore to get started.</div>
+        </div>
+
+        <div class="bottom-row">
+          <button class="more-link" id="moreLink" hidden data-nav="chores">+<span id="moreCount">0</span> more items</button>
+          <a class="pill-btn" href="#history" data-nav="history">History</a>
+          <button class="fab-add" id="addBtnToday" title="Add chore">
+            <svg class="plus-icon" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================== CHORES (FULL BACK LOG) VIEW ===================== -->
+  <div class="view" id="view-chores" hidden>
+    <div class="card card-backlog">
+      <div class="section-label">Back Log</div>
+      <div id="choresList"></div>
+      <div class="empty-state" id="choresEmpty" hidden>Your back log is empty. Tap + to add a chore.</div>
+
+      <div class="bottom-row">
+        <a class="pill-btn" href="#today" data-nav="today">Today</a>
+        <a class="pill-btn" href="#history" data-nav="history">History</a>
+        <button class="fab-add" id="addBtnChores" title="Add chore">
+          <svg class="plus-icon" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== HISTORY VIEW ===================== -->
+  <div class="view" id="view-history" hidden>
+    <div class="card card-backlog">
+      <div class="section-label">History</div>
+      <div id="historyList"></div>
+      <div class="empty-state" id="historyEmpty" hidden>Nothing completed yet. Once you check off a chore, it'll show up here.</div>
+
+      <div class="bottom-row">
+        <a class="pill-btn" href="#today" data-nav="today">Today</a>
+        <a class="pill-btn" href="#chores" data-nav="chores">Back Log</a>
+        <button class="fab-add" id="addBtnHistory" title="Add chore">
+          <svg class="plus-icon" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ====================== CONFIG ====================== */
+const SUPABASE_URL = "https://fjrbdbmxvwnusrqvfsms.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqcmJkYm14dndudXNycXZmc21zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4Mzg1ODAsImV4cCI6MjA5ODQxNDU4MH0.vQxfQSC4w-Ew87edFRD8i-eXYzspkzN5IoFp-Jfh9Vs";
+const APP_PASSWORD = "shelby"; // <-- update this to set your password
+const USER_NAME = "Shelby";
+
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+/* ====================== AUTH ====================== */
+function checkAuth() {
+  if (sessionStorage.getItem('ones_unlocked') === 'true') showApp();
+  else document.getElementById('loginScreen').hidden = false;
+}
+document.getElementById('loginBtn').addEventListener('click', attemptLogin);
+document.getElementById('passwordInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptLogin(); });
+function attemptLogin() {
+  const val = document.getElementById('passwordInput').value;
+  if (val === APP_PASSWORD) { sessionStorage.setItem('ones_unlocked', 'true'); showApp(); }
+  else document.getElementById('loginError').textContent = 'Incorrect password.';
+}
+async function showApp() {
+  document.getElementById('loginScreen').hidden = true;
+  document.getElementById('mainApp').hidden = false;
+  document.getElementById('userName').textContent = USER_NAME;
+  await loadAllData();
+  initRouter();
+}
+
+/* ====================== SUPABASE CLIENT ====================== */
+let db = null;
+try { db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }
+catch (e) { console.error('Supabase client failed to initialize. Check SUPABASE_URL / SUPABASE_ANON_KEY and that the CDN script loaded.', e); }
+
+/* ====================== SHARED STATE ====================== */
+let chores = [];          // active back log: {id, name, category, sort_order}
+let allCompletions = [];  // full completions log (every date): {id, name, category, completed_date}
+let openDropdownEl = null;
+
+function todayCompletions() {
+  return allCompletions.filter(c => c.completed_date === todayStr());
+}
+
+/* ====================== LOAD DATA (once, shared across views) ====================== */
+async function loadAllData() {
+  if (!db) {
+    console.error('Supabase client not available — check SUPABASE_URL / SUPABASE_ANON_KEY at the top of the script.');
+    chores = [];
+    allCompletions = [];
+    return;
+  }
+  const [choresRes, completionsRes] = await Promise.all([
+    db.from('chores').select('*').order('sort_order', { ascending: true }),
+    db.from('completions').select('*').order('completed_date', { ascending: false }),
+  ]);
+  if (choresRes.error) console.error('loadChores error', choresRes.error);
+  if (completionsRes.error) console.error('loadCompletions error', completionsRes.error);
+  chores = choresRes.data || [];
+  allCompletions = completionsRes.data || [];
+}
+
+/* ====================== ROUTER ====================== */
+const VIEWS = ['today', 'chores', 'history'];
+
+function initRouter() {
+  window.addEventListener('hashchange', renderRoute);
+  renderRoute();
+}
+
+function currentViewName() {
+  const hash = location.hash.replace('#', '').split('?')[0];
+  return VIEWS.includes(hash) ? hash : 'today';
+}
+
+function renderRoute() {
+  const view = currentViewName();
+  VIEWS.forEach(v => {
+    document.getElementById('view-' + v).hidden = (v !== view);
+  });
+
+  if (view === 'today') {
+    renderDate();
+    renderTodayView();
+  } else if (view === 'chores') {
+    renderChoresView();
+    // "+" on Today navigates here with ?new=1 to auto-create a blank item
+    const params = new URLSearchParams(location.hash.split('?')[1] || '');
+    if (params.get('new') === '1') {
+      history.replaceState(null, '', '#chores'); // clean the URL
+      addNewChore().then(renderChoresView);
+    }
+  } else if (view === 'history') {
+    renderHistoryView();
+  }
+}
+
+// Intercept nav clicks so we always go through the router (also handles same-hash re-clicks)
+document.addEventListener('click', (e) => {
+  const navEl = e.target.closest('[data-nav]');
+  if (navEl) {
+    const target = navEl.dataset.nav;
+    if (location.hash === '#' + target) {
+      renderRoute(); // same-hash re-click: hashchange won't fire, so re-render manually
+    } else if (navEl.tagName !== 'A') {
+      e.preventDefault();
+      location.hash = '#' + target; // buttons (e.g. more-link) don't navigate on their own
+    }
+  }
+});
+
+document.getElementById('addBtnToday').addEventListener('click', () => { location.hash = '#chores?new=1'; renderRoute(); });
+document.getElementById('addBtnChores').addEventListener('click', async () => { await addNewChore(); renderChoresView(); });
+document.getElementById('addBtnHistory').addEventListener('click', () => { location.hash = '#chores?new=1'; renderRoute(); });
+
+/* ====================== TODAY VIEW ====================== */
+function renderDate() {
+  const d = new Date();
+  document.getElementById('todayDate').textContent = `${d.getDate()} ${d.toLocaleDateString('en-US', { weekday: 'short' })}`;
+}
+
+function computeStreak() {
+  const dates = [...new Set(allCompletions.map(r => r.completed_date))].sort().reverse();
+  let streak = 0;
+  let cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+  if (!dates.includes(todayStr())) cursor.setDate(cursor.getDate() - 1);
+  for (const dStr of dates) {
+    const expected = cursor.toISOString().slice(0, 10);
+    if (dStr === expected) { streak++; cursor.setDate(cursor.getDate() - 1); }
+    else if (dStr < expected) break;
+  }
+  return streak;
+}
+
+function renderTodayView() {
+  document.getElementById('streakCount').textContent = computeStreak();
+
+  const tc = todayCompletions();
+  const count = tc.length;
+  document.getElementById('progressText').textContent = count === 0
+    ? "You haven't completed any tasks yet today."
+    : count === 1
+      ? "You have completed 1 task today. You're doing great 👍"
+      : `You have completed ${count} tasks today. You're doing great 👍`;
+
+  const cList = document.getElementById('completedList');
+  const cEmpty = document.getElementById('completedEmpty');
+  const cCard = document.getElementById('completedCard');
+  cList.innerHTML = '';
+  if (tc.length === 0) {
+    cCard.hidden = true;
+  } else {
+    cCard.hidden = false;
+    cEmpty.hidden = true;
+    tc.forEach(item => cList.appendChild(buildTaskRow(item, 'completed')));
+  }
+
+  fitTodayBacklogToViewport();
+}
+
+/* Renders as many backlog rows as fit on screen, so the card's bottom edge
+   (including the History/+ row) is always visible without scrolling. Reduces
+   the visible row count rather than the card overflowing the viewport. */
+function fitTodayBacklogToViewport() {
+  const bList = document.getElementById('todayBacklogList');
+  const bEmpty = document.getElementById('todayBacklogEmpty');
+  const moreLink = document.getElementById('moreLink');
+  const scrollWrap = document.querySelector('.today-backlog-scroll');
+  const card = document.querySelector('.card-backlog-today');
+  bList.innerHTML = '';
+
+  // Pin the card's height directly to "viewport bottom minus 8px margin",
+  // regardless of content. This is set explicitly via JS rather than relying
+  // on flex stretching through several ancestors, because .app uses
+  // min-height (so Chores/History can grow taller than the viewport and
+  // scroll normally) — a min-height chain doesn't reliably constrain a
+  // descendant's max size, so overflow:hidden never actually clipped.
+  const top = card.getBoundingClientRect().top;
+  card.style.height = Math.max(window.innerHeight - top - 8, 80) + 'px';
+
+  if (chores.length === 0) {
+    bEmpty.hidden = false;
+    moreLink.hidden = true;
+    return;
+  }
+  bEmpty.hidden = true;
+
+  // The card itself always stretches to fill the viewport (handled purely
+  // by CSS flex layout, regardless of content). What we're fitting here is
+  // how many rows fit inside the fixed-height scroll area above the
+  // pinned bottom-row, so nothing gets cut off mid-row.
+  const candidateCount = Math.min(chores.length, 30);
+  const rows = [];
+  for (let i = 0; i < candidateCount; i++) {
+    const row = buildTaskRow(chores[i], 'backlog');
+    bList.appendChild(row);
+    rows.push(row);
+  }
+
+  let visibleCount = rows.length;
+  while (visibleCount > 1 && bList.getBoundingClientRect().bottom > scrollWrap.getBoundingClientRect().bottom) {
+    visibleCount--;
+    bList.removeChild(rows[visibleCount]);
+  }
+
+  const remaining = chores.length - visibleCount;
+  if (remaining > 0) {
+    moreLink.hidden = false;
+    document.getElementById('moreCount').textContent = remaining;
+  } else {
+    moreLink.hidden = true;
+  }
+}
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (currentViewName() === 'today') fitTodayBacklogToViewport();
+  }, 150);
+});
+
+// The icon font and Satoshi load asynchronously; if they swap in after our
+// initial measurement, row heights can shift and push the card past the
+// viewport, eating the bottom margin. Re-fit once everything has settled.
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => {
+    if (currentViewName() === 'today') fitTodayBacklogToViewport();
+  });
+}
+window.addEventListener('load', () => {
+  setTimeout(() => { if (currentViewName() === 'today') fitTodayBacklogToViewport(); }, 300);
+});
+
+/* Shared row builder for Today view (completed + backlog rows, no drag/swipe here) */
+function buildTaskRow(item, kind) {
+  const row = document.createElement('div');
+  const isCompleted = kind === 'completed';
+  row.className = 'task-row ' + (isCompleted ? 'completed-row' : 'backlog-row');
+  row.dataset.id = item.id;
+
+  const check = document.createElement('div');
+  check.className = 'check-circle material-symbols-outlined';
+  check.textContent = isCompleted ? 'check_circle' : 'radio_button_unchecked';
+  check.addEventListener('click', (e) => { e.stopPropagation(); toggleComplete(item, isCompleted); });
+
+  const name = document.createElement('span');
+  name.className = 'task-name';
+  name.textContent = item.name;
+  name.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (isCompleted) return;
+    startEditName(name, item, () => renderTodayView());
+  });
+
+  const tag = document.createElement('button');
+  tag.className = 'tag';
+  tag.textContent = item.category || 'No category';
+  // Prevent the button from stealing focus away from an in-progress text
+  // edit — otherwise clicking the tag blurs (and ends) the name edit first.
+  tag.addEventListener('mousedown', (e) => e.preventDefault());
+  tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, isCompleted, () => renderTodayView()); });
+
+  row.appendChild(check);
+  row.appendChild(name);
+  row.appendChild(tag);
+  return row;
+}
+
+async function toggleComplete(item, isCurrentlyCompleted) {
+  if (!isCurrentlyCompleted) {
+    const newCompletion = { id: 'local-' + Date.now(), chore_id: item.id, name: item.name, category: item.category, completed_date: todayStr() };
+    if (db) {
+      const { data, error } = await db.from('completions').insert([{ chore_id: item.id, name: item.name, category: item.category, completed_date: todayStr() }]).select();
+      if (error) { console.error('insert completion error', error); return; }
+      const { error: delErr } = await db.from('chores').delete().eq('id', item.id);
+      if (delErr) { console.error('delete chore error', delErr); return; }
+      allCompletions.unshift(data[0]);
+    } else {
+      allCompletions.unshift(newCompletion);
+    }
+    chores = chores.filter(c => c.id !== item.id);
+  } else {
+    const newChore = { id: 'local-' + Date.now(), name: item.name, category: item.category };
+    if (db) {
+      const { data, error } = await db.from('chores').insert([{ name: item.name, category: item.category }]).select();
+      if (error) { console.error('insert chore error', error); return; }
+      const { error: delErr } = await db.from('completions').delete().eq('id', item.id);
+      if (delErr) { console.error('delete completion error', delErr); return; }
+      chores.unshift(data[0]);
+    } else {
+      chores.unshift(newChore);
+    }
+    allCompletions = allCompletions.filter(c => c.id !== item.id);
+  }
+  renderTodayView();
+}
+
+/* ====================== INLINE EDIT NAME (shared) ====================== */
+function startEditName(nameEl, item, onSaved) {
+  nameEl.contentEditable = 'true';
+  nameEl.focus();
+  // Place the caret at the end rather than selecting all text —
+  // selecting all paints a highlighted selection box, which we don't want.
+  const range = document.createRange();
+  range.selectNodeContents(nameEl);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  const finish = async () => {
+    nameEl.contentEditable = 'false';
+    const newName = nameEl.textContent.trim();
+    nameEl.removeEventListener('blur', finish);
+    nameEl.removeEventListener('keydown', onKey);
+    if (!newName) { nameEl.textContent = item.name; return; }
+    if (newName === item.name) return;
+    item.name = newName;
+    if (db) {
+      const { error } = await db.from('chores').update({ name: newName }).eq('id', item.id);
+      if (error) console.error('update name error', error);
+    }
+    if (onSaved) onSaved();
+  };
+  function onKey(e) {
+    if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }
+    if (e.key === 'Escape') { nameEl.textContent = item.name; nameEl.blur(); }
+  }
+  nameEl.addEventListener('blur', finish);
+  nameEl.addEventListener('keydown', onKey);
+}
+
+/* ====================== CATEGORY DROPDOWN (shared) ====================== */
+function getAllCategoryNames() {
+  const set = new Set();
+  chores.forEach(c => c.category && set.add(c.category));
+  allCompletions.forEach(c => c.category && set.add(c.category));
+  return [...set].sort();
+}
+function closeDropdown() {
+  if (openDropdownEl) { openDropdownEl.remove(); openDropdownEl = null; document.removeEventListener('click', closeDropdown); }
+}
+function openCategoryDropdown(tagEl, item, isCompleted, onSaved) {
+  closeDropdown();
+  const dropdown = document.createElement('div');
+  dropdown.className = 'tag-dropdown';
+  getAllCategoryNames().forEach(cat => {
+    const btn = document.createElement('button');
+    btn.textContent = cat;
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
+    btn.addEventListener('click', async (e) => { e.stopPropagation(); await setCategory(item, cat, isCompleted, tagEl); closeDropdown(); });
+    dropdown.appendChild(btn);
+  });
+  const newCatWrap = document.createElement('div');
+  newCatWrap.className = 'new-cat-input';
+  const input = document.createElement('input');
+  input.placeholder = 'New category';
+  const addBtn = document.createElement('button');
+  addBtn.textContent = 'Add';
+  addBtn.addEventListener('mousedown', (e) => e.preventDefault());
+  addBtn.addEventListener('click', async (e) => { e.stopPropagation(); const val = input.value.trim(); if (!val) return; await setCategory(item, val, isCompleted, tagEl); closeDropdown(); });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addBtn.click(); });
+  newCatWrap.appendChild(input);
+  newCatWrap.appendChild(addBtn);
+  dropdown.appendChild(newCatWrap);
+  document.body.appendChild(dropdown);
+  const rect = tagEl.getBoundingClientRect();
+  dropdown.style.top = (rect.bottom + window.scrollY + 6) + 'px';
+  dropdown.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 180) + 'px';
+  openDropdownEl = dropdown;
+  setTimeout(() => document.addEventListener('click', closeDropdown), 0);
+}
+async function setCategory(item, newCategory, isCompleted, tagEl) {
+  item.category = newCategory;
+  if (db) {
+    const table = isCompleted ? 'completions' : 'chores';
+    const { error } = await db.from(table).update({ category: newCategory }).eq('id', item.id);
+    if (error) console.error('update category error', error);
+  }
+  // Patch the tag in place rather than re-rendering the whole list — a full
+  // re-render would destroy/rebuild the row and end any in-progress name edit.
+  if (tagEl) {
+    tagEl.textContent = newCategory || (tagEl.classList.contains('placeholder-tag') ? 'Category' : 'No category');
+    tagEl.classList.remove('placeholder-tag');
+  }
+}
+
+/* ====================== CHORES VIEW (full back log, drag + swipe) ====================== */
+async function addNewChore() {
+  if (db) {
+    const maxOrder = chores.reduce((m, c) => Math.max(m, c.sort_order || 0), 0);
+    const { data, error } = await db.from('chores').insert([{ name: 'New Item', category: '', sort_order: maxOrder + 1 }]).select();
+    if (!error && data) { chores.push(data[0]); return; }
+    console.error('addNewChore error', error);
+  }
+  chores.push({ id: 'local-' + Date.now(), name: 'New Item', category: '' });
+}
+
+function renderChoresView() {
+  const list = document.getElementById('choresList');
+  const empty = document.getElementById('choresEmpty');
+  list.innerHTML = '';
+  if (chores.length === 0) { empty.hidden = false; return; }
+  empty.hidden = true;
+  chores.forEach(item => list.appendChild(buildChoresRow(item)));
+
+  const last = chores[chores.length - 1];
+  if (last && last.name === 'New Item') {
+    const lastRow = list.lastElementChild;
+    const nameEl = lastRow.querySelector('.task-name');
+    if (nameEl) startEditName(nameEl, last, () => {});
+  }
+}
+
+function buildChoresRow(item) {
+  const wrap = document.createElement('div');
+  wrap.className = 'task-row-wrap';
+  wrap.dataset.id = item.id;
+
+  const deleteBg = document.createElement('div');
+  deleteBg.className = 'delete-bg';
+  deleteBg.innerHTML = '<span class="material-symbols-outlined">delete</span>';
+
+  const row = document.createElement('div');
+  row.className = 'task-row backlog-row';
+  row.style.background = 'var(--white)';
+
+  const check = document.createElement('div');
+  check.className = 'check-circle material-symbols-outlined';
+  check.textContent = 'radio_button_unchecked';
+  check.addEventListener('click', (e) => e.stopPropagation());
+
+  const name = document.createElement('span');
+  name.className = 'task-name';
+  name.textContent = item.name;
+  name.addEventListener('click', (e) => {
+    e.stopPropagation();
+    startEditName(name, item, () => {});
+  });
+
+  const tag = document.createElement('button');
+  tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
+  tag.textContent = item.category || 'Category';
+  tag.addEventListener('mousedown', (e) => e.preventDefault());
+  tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, false, () => renderChoresView()); });
+
+  row.appendChild(check);
+  row.appendChild(name);
+  row.appendChild(tag);
+  wrap.appendChild(deleteBg);
+  wrap.appendChild(row);
+
+  attachSwipeAndDrag(wrap, row, item);
+  return wrap;
+}
+
+function attachSwipeAndDrag(wrap, row, item) {
+  let startX = 0, startY = 0, currentX = 0, dragStartTop = 0;
+  let mode = null;
+  let holdTimer = null;
+  let placeholder = null;
+  const SWIPE_DELETE_THRESHOLD = 90;
+  const HOLD_MS = 350;
+  const MOVE_CANCEL_HOLD = 10;
+
+  function onPointerDown(e) {
+    if (e.target.closest('.tag') || e.target.isContentEditable) return;
+    startX = e.clientX; startY = e.clientY; currentX = 0; mode = null;
+    holdTimer = setTimeout(() => { if (mode === null) startDrag(e); }, HOLD_MS);
+    row.addEventListener('pointermove', onPointerMove);
+    row.addEventListener('pointerup', onPointerUp);
+    row.addEventListener('pointercancel', onPointerUp);
+  }
+
+  function onPointerMove(e) {
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (mode === null) {
+      if (Math.abs(dx) > MOVE_CANCEL_HOLD || Math.abs(dy) > MOVE_CANCEL_HOLD) {
+        clearTimeout(holdTimer);
+        if (Math.abs(dx) > Math.abs(dy)) mode = 'swipe';
+      }
+    }
+    if (mode === 'swipe') {
+      e.preventDefault();
+      currentX = Math.min(0, dx);
+      row.style.transform = `translateX(${currentX}px)`;
+    } else if (mode === 'drag') {
+      e.preventDefault();
+      updateDrag(e);
+    }
+  }
+
+  function onPointerUp(e) {
+    clearTimeout(holdTimer);
+    row.removeEventListener('pointermove', onPointerMove);
+    row.removeEventListener('pointerup', onPointerUp);
+    row.removeEventListener('pointercancel', onPointerUp);
+    if (mode === 'swipe') {
+      if (Math.abs(currentX) > SWIPE_DELETE_THRESHOLD) {
+        deleteItem(item, wrap);
+      } else {
+        row.style.transition = 'transform 0.2s ease';
+        row.style.transform = 'translateX(0)';
+        setTimeout(() => { row.style.transition = ''; }, 200);
+      }
+    } else if (mode === 'drag') {
+      endDrag(e);
+    }
+    mode = null;
+  }
+
+  row.addEventListener('pointerdown', onPointerDown);
+
+  function startDrag(e) {
+    mode = 'drag';
+    row.classList.add('dragging');
+    const rect = row.getBoundingClientRect();
+    dragStartTop = rect.top;
+    row.style.width = rect.width + 'px';
+    row.style.position = 'fixed';
+    row.style.left = rect.left + 'px';
+    row.style.top = rect.top + 'px';
+    row.style.zIndex = '100';
+    placeholder = document.createElement('div');
+    placeholder.className = 'drag-placeholder';
+    placeholder.style.height = rect.height + 'px';
+    wrap.parentNode.insertBefore(placeholder, wrap);
+    document.body.appendChild(row);
+    if (navigator.vibrate) navigator.vibrate(10);
+  }
+
+  function updateDrag(e) {
+    // Position is driven purely by pointer delta from the drag's start point —
+    // never by the placeholder's current (reflowing) position. Reading the
+    // placeholder's live rect here caused a feedback loop (the row's position
+    // depended on the placeholder, whose position depended on the row), which
+    // is what made dragging feel jittery/wonky.
+    const dy = e.clientY - startY;
+    row.style.top = (dragStartTop + dy) + 'px';
+
+    const list = document.getElementById('choresList');
+    const rows = [...list.children].filter(el => el !== placeholder);
+    let inserted = false;
+    for (const el of rows) {
+      const r = el.getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) { list.insertBefore(placeholder, el); inserted = true; break; }
+    }
+    if (!inserted) list.appendChild(placeholder);
+  }
+
+  function endDrag(e) {
+    row.classList.remove('dragging');
+    row.style.position = ''; row.style.left = ''; row.style.top = ''; row.style.width = ''; row.style.zIndex = '';
+    const list = document.getElementById('choresList');
+    list.insertBefore(wrap, placeholder);
+    wrap.appendChild(row);
+    placeholder.remove();
+    placeholder = null;
+    const newOrder = [...list.children].map(w => w.dataset.id);
+    chores.sort((a, b) => newOrder.indexOf(String(a.id)) - newOrder.indexOf(String(b.id)));
+    persistOrder();
+  }
+}
+
+async function persistOrder() {
+  if (!db) return;
+  try { await Promise.all(chores.map((c, i) => db.from('chores').update({ sort_order: i }).eq('id', c.id))); }
+  catch (e) { console.error('persistOrder error', e); }
+}
+
+async function deleteItem(item, wrap) {
+  chores = chores.filter(c => c.id !== item.id);
+  wrap.remove();
+  if (chores.length === 0) document.getElementById('choresEmpty').hidden = false;
+  if (db) {
+    const { error } = await db.from('chores').delete().eq('id', item.id);
+    if (error) console.error('delete error', error);
+  }
+}
+
+/* ====================== HISTORY VIEW ====================== */
+function renderHistoryView() {
+  const list = document.getElementById('historyList');
+  const empty = document.getElementById('historyEmpty');
+  list.innerHTML = '';
+  if (allCompletions.length === 0) { empty.hidden = false; return; }
+  empty.hidden = true;
+  allCompletions.forEach(item => list.appendChild(buildHistoryRow(item)));
+}
+
+function buildHistoryRow(item) {
+  const row = document.createElement('div');
+  row.className = 'task-row history-row';
+
+  const check = document.createElement('div');
+  check.className = 'check-circle material-symbols-outlined';
+  check.textContent = 'check_circle';
+
+  const name = document.createElement('span');
+  name.className = 'task-name';
+  name.textContent = item.name;
+
+  const tag = document.createElement('span');
+  tag.className = 'tag';
+  tag.textContent = item.category || 'No category';
+  tag.style.cursor = 'default';
+
+  const restore = document.createElement('span');
+  restore.className = 'restore-icon material-symbols-outlined';
+  restore.textContent = 'autorenew';
+  restore.title = 'Add back to Back Log';
+  restore.addEventListener('click', (e) => restoreItem(item, e.currentTarget));
+
+  row.appendChild(check);
+  row.appendChild(name);
+  row.appendChild(tag);
+  row.appendChild(restore);
+  return row;
+}
+
+async function restoreItem(item, iconEl) {
+  // Re-adds the chore to the active Back Log as-is. History stays intact —
+  // it's a permanent log, not an undo.
+  if (db) {
+    const { data, error } = await db.from('chores').insert([{ name: item.name, category: item.category }]).select();
+    if (error) { console.error('restore error', error); return; }
+    chores.push(data[0]);
+  } else {
+    chores.push({ id: 'local-' + Date.now(), name: item.name, category: item.category });
+  }
+  iconEl.textContent = 'check';
+  setTimeout(() => { iconEl.textContent = 'autorenew'; }, 1200);
+}
+
+/* ====================== START ====================== */
+checkAuth();
+</script>
+</body>
+</html>
