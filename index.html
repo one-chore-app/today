@@ -204,6 +204,7 @@ body {
 .card-backlog .section-label {
   color: var(--ink);
   opacity: 1;
+  padding-top: 20px;
 }
 
 .task-row {
@@ -293,8 +294,6 @@ body {
   position: relative;
   margin-top: -2px;
   z-index: 2;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
 }
 
 .backlog-row .task-name, .history-row .task-name {
@@ -369,7 +368,7 @@ body {
   padding-top: 16px;
   padding-left: 24px;
   padding-right: 24px;
-  padding-bottom: env(safe-area-inset-bottom, 16px);
+  padding-bottom: max(env(safe-area-inset-bottom), 20px);
   flex-shrink: 0;
   position: relative;
 }
@@ -1030,7 +1029,7 @@ function fitTodayBacklogToViewport() {
   // Pin card height to viewport
   const top = card.getBoundingClientRect().top;
   const viewportHeight = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-  card.style.height = Math.max(viewportHeight - top - 8, 80) + 'px';
+  card.style.height = Math.max(viewportHeight - top, 80) + 'px';
 
   if (chores.length === 0) { bEmpty.hidden = false; return; }
   bEmpty.hidden = true;
@@ -1250,7 +1249,7 @@ function fitCardToViewport(cardSelector) {
   if (!card) return;
   const top = card.getBoundingClientRect().top;
   const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-  card.style.height = Math.max(viewportHeight - top - 8, 80) + 'px';
+  card.style.height = Math.max(viewportHeight - top, 80) + 'px';
 }
 
 /* Attach a scroll listener to a scroll container that fades in the top
