@@ -124,7 +124,7 @@ body {
 
 .card {
   border-radius: var(--radius);
-  padding: 15px 16px 16px;
+  padding: 12px 16px 16px;
 }
 
 /* Progress card */
@@ -188,7 +188,7 @@ body {
 .section-label {
   font-size: 14px;
   font-weight: 700;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   opacity: 0.9;
 }
 
@@ -319,20 +319,21 @@ body {
   overflow-y: auto;
   user-select: none;
   -webkit-user-select: none;
-  padding-bottom: 72px; /* fade is 56px + 16px breathing room */
+  padding-bottom: 44px; /* fade is 28px + 16px breathing room */
   box-sizing: border-box;
 }
 
 
-/* Top fade — narrower than bottom, only visible once you've scrolled down.
-   Controlled by opacity via JS on scroll. */
+
+/* Top fade — covers almost the full scroll area height so items appear
+   to emerge from nothing when scrolling back up. Only visible once scrolled. */
 .scroll-list-wrap::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 28px;
+  height: calc(100% - 20px);
   pointer-events: none;
   border-radius: 4px 4px 0 0;
   opacity: 0;
@@ -345,15 +346,14 @@ body {
   background: linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
 }
 
-/* Fade overlay — sits on top of the scroll container, fades from
-   transparent at the top to the card's background colour at the bottom */
+/* Bottom fade — starts just above the + button row */
 .scroll-list-wrap::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 56px;
+  height: 28px;
   pointer-events: none;
   border-radius: 0 0 4px 4px;
   z-index: 1;
@@ -395,7 +395,7 @@ body {
   color: var(--ink);
   background: transparent;
   border-radius: 999px;
-  padding: 6px 20px;
+  padding: 5px 20px;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -496,7 +496,7 @@ body {
   outline: 1.5px solid var(--ink);
   color: var(--ink);
   border-radius: 999px;
-  padding: 6px 20px;
+  padding: 5px 20px;
   font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
@@ -705,6 +705,7 @@ body {
         </div>
 
         <div class="bottom-row">
+          <a class="pill-btn" href="#chores" data-nav="chores">All Chores</a>
           <a class="pill-btn" href="#history" data-nav="history">History</a>
           <button class="fab-add" id="addBtnToday" title="Add chore">
             <svg class="plus-icon" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -1239,7 +1240,7 @@ function renderChoresView() {
       if (scrollEl) {
         const rowBottom = lastRow.getBoundingClientRect().bottom;
         const containerBottom = scrollEl.getBoundingClientRect().bottom;
-        const overlap = rowBottom - (containerBottom - 56 - 8); // 8px buffer above fade
+        const overlap = rowBottom - (containerBottom - 28 - 8); // 8px buffer above fade
         if (overlap > 0) scrollEl.scrollTop += overlap;
       }
     }
