@@ -56,7 +56,7 @@ body {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  padding: 23px 8px 8px;
+  padding: 21px 8px 8px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -67,7 +67,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 23px;
+  margin-bottom: 21px;
   padding: 0 16px;
 }
 
@@ -124,7 +124,7 @@ body {
 
 .card {
   border-radius: var(--radius);
-  padding: 20px 16px;
+  padding: 16px;
 }
 
 /* Progress card */
@@ -173,9 +173,9 @@ body {
 }
 
 .progress-text {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
-  line-height: 1.18;
+  line-height: 1.13;
   margin: 0;
 }
 
@@ -188,7 +188,7 @@ body {
 .section-label {
   font-size: 14px;
   font-weight: 700;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   opacity: 0.9;
 }
 
@@ -201,7 +201,7 @@ body {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 5px 0;
+  padding: 4px 0;
   cursor: pointer;
   user-select: none;
   position: relative;
@@ -291,57 +291,38 @@ body {
   margin-top: 20px;
 }
 
-/* Today view's Back Log card always stretches to the bottom of the
-   viewport, regardless of how many (or how few) chores are in it.
-   Chores/History pages intentionally do NOT use this — they show the
-   full list with normal page scrolling instead. */
-.card-backlog-today {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
 
-.card-backlog-today .section-label {
-  flex-shrink: 0;
-}
-
-.today-backlog-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.card-backlog-today .bottom-row {
-  margin-top: auto;
-  padding-top: 20px;
-  flex-shrink: 0;
-}
-
-/* Chores + History cards: fixed viewport height, list scrolls inside */
+/* Today, Chores, and History back log cards — all share the same
+   viewport-fit + scrollable-list pattern */
+.card-backlog-today,
 .card-viewport-fit {
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
+.card-backlog-today .section-label,
 .card-viewport-fit .section-label {
   flex-shrink: 0;
 }
 
+.today-backlog-scroll,
 .viewport-scroll-list {
   flex: 1 1 auto;
   overflow-y: auto;
   min-height: 0;
-  /* Prevent text selection during drag */
   user-select: none;
   -webkit-user-select: none;
 }
 
+.card-backlog-today .bottom-row,
 .card-viewport-fit .bottom-row {
   margin-top: auto;
-  padding-top: 20px;
+  padding-top: 16px;
   flex-shrink: 0;
 }
+
+
 
 .more-link {
   font-size: 14px;
@@ -526,12 +507,13 @@ body {
 }
 
 .task-row.dragging {
-  opacity: 0.85;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  background: var(--white);
-  z-index: 10;
-  position: relative;
+  opacity: 0.9;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
   border-radius: 999px;
+  background: var(--white);
+  z-index: 100;
+  position: relative;
+  overflow: hidden;
 }
 
 .drag-placeholder {
@@ -553,7 +535,7 @@ body {
   width: 100%;
   max-width: 480px;
   height: 100dvh;
-  padding: 23px 8px 8px;
+  padding: 21px 8px 8px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -672,7 +654,6 @@ body {
         </div>
 
         <div class="bottom-row">
-          <button class="more-link" id="moreLink" hidden data-nav="chores">+<span id="moreCount">0</span> more items</button>
           <a class="pill-btn" href="#history" data-nav="history">History</a>
           <button class="fab-add" id="addBtnToday" title="Add chore">
             <svg class="plus-icon" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -784,10 +765,6 @@ async function loadAllData() {
   if (completionsRes.error) console.error('loadCompletions error', JSON.stringify(completionsRes.error));
   chores = choresRes.data || [];
   allCompletions = completionsRes.data || [];
-  // TEMP DEBUG — remove after diagnosing
-  console.log('todayStr():', todayStr());
-  console.log('allCompletions sample:', allCompletions.slice(0,3).map(c => ({ id: c.id, name: c.name, completed_date: c.completed_date, type: typeof c.completed_date })));
-  console.log('todayCompletions count:', allCompletions.filter(c => c.completed_date === todayStr()).length);
 }
 
 /* ====================== ROUTER ====================== */
@@ -941,53 +918,17 @@ function renderTodayView() {
 function fitTodayBacklogToViewport() {
   const bList = document.getElementById('todayBacklogList');
   const bEmpty = document.getElementById('todayBacklogEmpty');
-  const moreLink = document.getElementById('moreLink');
-  const scrollWrap = document.querySelector('.today-backlog-scroll');
   const card = document.querySelector('.card-backlog-today');
   bList.innerHTML = '';
 
-  // Pin the card's height directly to "viewport bottom minus 8px margin",
-  // regardless of content. This is set explicitly via JS rather than relying
-  // on flex stretching through several ancestors, because .app uses
-  // min-height (so Chores/History can grow taller than the viewport and
-  // scroll normally) — a min-height chain doesn't reliably constrain a
-  // descendant's max size, so overflow:hidden never actually clipped.
+  // Pin card height to viewport
   const top = card.getBoundingClientRect().top;
   const viewportHeight = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
   card.style.height = Math.max(viewportHeight - top - 8, 80) + 'px';
 
-  if (chores.length === 0) {
-    bEmpty.hidden = false;
-    moreLink.hidden = true;
-    return;
-  }
+  if (chores.length === 0) { bEmpty.hidden = false; return; }
   bEmpty.hidden = true;
-
-  // The card itself always stretches to fill the viewport (handled purely
-  // by CSS flex layout, regardless of content). What we're fitting here is
-  // how many rows fit inside the fixed-height scroll area above the
-  // pinned bottom-row, so nothing gets cut off mid-row.
-  const candidateCount = Math.min(chores.length, 30);
-  const rows = [];
-  for (let i = 0; i < candidateCount; i++) {
-    const row = buildTaskRow(chores[i], 'backlog');
-    bList.appendChild(row);
-    rows.push(row);
-  }
-
-  let visibleCount = rows.length;
-  while (visibleCount > 1 && bList.getBoundingClientRect().bottom > scrollWrap.getBoundingClientRect().bottom) {
-    visibleCount--;
-    bList.removeChild(rows[visibleCount]);
-  }
-
-  const remaining = chores.length - visibleCount;
-  if (remaining > 0) {
-    moreLink.hidden = false;
-    document.getElementById('moreCount').textContent = remaining;
-  } else {
-    moreLink.hidden = true;
-  }
+  chores.forEach(item => bList.appendChild(buildTodayBacklogRow(item)));
 }
 
 let resizeTimer = null;
@@ -1222,6 +1163,44 @@ function renderChoresView() {
   }
 }
 
+function buildTodayBacklogRow(item) {
+  const wrap = document.createElement('div');
+  wrap.className = 'task-row-wrap';
+  wrap.dataset.id = item.id;
+
+  const row = document.createElement('div');
+  row.className = 'task-row backlog-row';
+  row.style.background = 'var(--white)';
+
+  const check = document.createElement('div');
+  check.className = 'check-circle material-symbols-outlined';
+  check.textContent = 'radio_button_unchecked';
+  check.addEventListener('click', (e) => { e.stopPropagation(); toggleComplete(item, false); });
+
+  const name = document.createElement('span');
+  name.className = 'task-name';
+  name.textContent = item.name;
+  name.addEventListener('click', (e) => {
+    e.stopPropagation();
+    startEditName(name, item, () => renderTodayView());
+    openCategoryDropdown(tag, item, false, () => renderTodayView());
+  });
+
+  const tag = document.createElement('button');
+  tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
+  tag.textContent = item.category || 'Category';
+  tag.addEventListener('mousedown', (e) => e.preventDefault());
+  tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, false, () => renderTodayView()); });
+
+  row.appendChild(check);
+  row.appendChild(name);
+  row.appendChild(tag);
+  wrap.appendChild(row);
+
+  attachSwipeAndDrag(wrap, row, item, { noDelete: true, listId: 'todayBacklogList' });
+  return wrap;
+}
+
 function buildChoresRow(item) {
   const wrap = document.createElement('div');
   wrap.className = 'task-row-wrap';
@@ -1246,6 +1225,7 @@ function buildChoresRow(item) {
   name.addEventListener('click', (e) => {
     e.stopPropagation();
     startEditName(name, item, () => {});
+    openCategoryDropdown(tag, item, false, () => renderChoresView());
   });
 
   const tag = document.createElement('button');
@@ -1260,27 +1240,25 @@ function buildChoresRow(item) {
   wrap.appendChild(deleteBg);
   wrap.appendChild(row);
 
-  attachSwipeAndDrag(wrap, row, item);
+  attachSwipeAndDrag(wrap, row, item, { noDelete: false, listId: 'choresList' });
   return wrap;
 }
 
-function attachSwipeAndDrag(wrap, row, item) {
+function attachSwipeAndDrag(wrap, row, item, { noDelete = false, listId = 'choresList' } = {}) {
   let startX = 0, startY = 0, currentX = 0, dragStartTop = 0;
-  let mode = null; // 'scroll' | 'swipe' | 'drag' | null
+  let mode = null;
   let holdTimer = null;
   let placeholder = null;
   let lastPointerY = 0;
+  let activePointerId = null;
   const SWIPE_DELETE_THRESHOLD = 90;
   const HOLD_MS = 400;
-  const INTENT_THRESHOLD = 8; // px before we decide scroll vs swipe vs hold
+  const INTENT_THRESHOLD = 8;
 
   function onPointerDown(e) {
     if (e.target.closest('.tag') || e.target.isContentEditable) return;
     startX = e.clientX; startY = e.clientY; lastPointerY = e.clientY;
-    currentX = 0; mode = null;
-    // Capture the pointer immediately so pointercancel doesn't fire when
-    // the browser would otherwise claim the touch for native scrolling.
-    // We'll manually scroll the list if the user is clearly swiping vertically.
+    currentX = 0; mode = null; activePointerId = e.pointerId;
     row.setPointerCapture(e.pointerId);
     holdTimer = setTimeout(() => { if (mode === null) startDrag(); }, HOLD_MS);
     row.addEventListener('pointermove', onPointerMove);
@@ -1289,6 +1267,7 @@ function attachSwipeAndDrag(wrap, row, item) {
   }
 
   function onPointerMove(e) {
+    if (e.pointerId !== activePointerId) return;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
     const deltaY = e.clientY - lastPointerY;
@@ -1296,16 +1275,11 @@ function attachSwipeAndDrag(wrap, row, item) {
 
     if (mode === null && (Math.abs(dx) > INTENT_THRESHOLD || Math.abs(dy) > INTENT_THRESHOLD)) {
       clearTimeout(holdTimer);
-      if (Math.abs(dx) > Math.abs(dy)) {
-        mode = 'swipe';
-      } else {
-        mode = 'scroll';
-      }
+      mode = Math.abs(dx) > Math.abs(dy) ? 'swipe' : 'scroll';
     }
 
     if (mode === 'scroll') {
-      // Manually scroll the list container since we captured the pointer
-      const scrollEl = row.closest('.viewport-scroll-list');
+      const scrollEl = wrap.closest('.viewport-scroll-list');
       if (scrollEl) scrollEl.scrollTop -= deltaY;
     } else if (mode === 'swipe') {
       e.preventDefault();
@@ -1318,12 +1292,13 @@ function attachSwipeAndDrag(wrap, row, item) {
   }
 
   function onPointerUp(e) {
+    if (e.pointerId !== activePointerId) return;
     clearTimeout(holdTimer);
     row.removeEventListener('pointermove', onPointerMove);
     row.removeEventListener('pointerup', onPointerUp);
     row.removeEventListener('pointercancel', onPointerUp);
     if (mode === 'swipe') {
-      if (Math.abs(currentX) > SWIPE_DELETE_THRESHOLD) {
+      if (!noDelete && Math.abs(currentX) > SWIPE_DELETE_THRESHOLD) {
         deleteItem(item, wrap);
       } else {
         row.style.transition = 'transform 0.2s ease';
@@ -1345,46 +1320,49 @@ function attachSwipeAndDrag(wrap, row, item) {
     document.body.style.webkitUserSelect = 'none';
     const rect = row.getBoundingClientRect();
     dragStartTop = rect.top;
-    row.style.width = rect.width + 'px';
+    // Make the row float visually by fixing it in place —
+    // but keep it in the DOM where it is so pointer capture stays intact.
     row.style.position = 'fixed';
     row.style.left = rect.left + 'px';
     row.style.top = rect.top + 'px';
+    row.style.width = rect.width + 'px';
     row.style.zIndex = '100';
+    // Insert a placeholder in the wrap to hold the space the row vacated
     placeholder = document.createElement('div');
     placeholder.className = 'drag-placeholder';
     placeholder.style.height = rect.height + 'px';
-    wrap.parentNode.insertBefore(placeholder, wrap);
-    document.body.appendChild(row);
+    wrap.appendChild(placeholder);
     if (navigator.vibrate) navigator.vibrate(10);
   }
 
   function updateDrag(e) {
     const dy = e.clientY - startY;
     row.style.top = (dragStartTop + dy) + 'px';
-
-    const list = document.getElementById('choresList');
-    const rows = [...list.children].filter(el => el !== placeholder);
+    const list = document.getElementById(listId);
+    const wraps = [...list.children].filter(el => el !== wrap);
     let inserted = false;
-    for (const el of rows) {
+    for (const el of wraps) {
       const r = el.getBoundingClientRect();
-      if (e.clientY < r.top + r.height / 2) { list.insertBefore(placeholder, el); inserted = true; break; }
+      if (e.clientY < r.top + r.height / 2) {
+        list.insertBefore(wrap, el);
+        inserted = true;
+        break;
+      }
     }
-    if (!inserted) list.appendChild(placeholder);
+    if (!inserted) list.appendChild(wrap);
   }
 
   function endDrag() {
     document.body.style.userSelect = '';
     document.body.style.webkitUserSelect = '';
     row.classList.remove('dragging');
-    row.style.position = ''; row.style.left = ''; row.style.top = ''; row.style.width = ''; row.style.zIndex = '';
-    const list = document.getElementById('choresList');
-    if (placeholder && placeholder.parentNode === list) {
-      list.insertBefore(wrap, placeholder);
-    } else if (!wrap.parentNode) {
-      list.appendChild(wrap);
-    }
-    if (row.parentNode !== wrap) wrap.appendChild(row);
+    row.style.position = '';
+    row.style.left = '';
+    row.style.top = '';
+    row.style.width = '';
+    row.style.zIndex = '';
     if (placeholder) { placeholder.remove(); placeholder = null; }
+    const list = document.getElementById(listId);
     const newOrder = [...list.children].map(w => w.dataset.id);
     chores.sort((a, b) => newOrder.indexOf(String(a.id)) - newOrder.indexOf(String(b.id)));
     persistOrder();
