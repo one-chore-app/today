@@ -562,6 +562,41 @@ body {
   border-radius: 12px;
 }
 
+/* Rearrange mode */
+.rearrange-mode .viewport-scroll-list,
+.rearrange-mode .today-backlog-scroll {
+  touch-action: none;
+}
+
+.drag-handle {
+  color: #bbb;
+  font-size: 20px;
+  flex-shrink: 0;
+  cursor: grab;
+  margin-left: 4px;
+}
+
+.rearrange-done-btn {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: var(--white);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+}
+
+.rearrange-done-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
 .login-screen {
   width: 100%;
   display: flex;
@@ -792,6 +827,8 @@ catch (e) { console.error('Supabase client failed to initialize. Check SUPABASE_
 let chores = [];          // active back log: {id, name, category, sort_order}
 let allCompletions = [];  // full completions log (every date): {id, name, category, completed_date}
 let openDropdownEl = null;
+let isRearranging = false;
+let rearrangeListId = null;
 
 function todayCompletions() {
   return allCompletions.filter(c => c.completed_date === todayStr());
@@ -1245,36 +1282,35 @@ function buildTodayBacklogRow(item) {
   wrap.className = 'task-row-wrap';
   wrap.dataset.id = item.id;
 
-  const row = document.createElement('div');
-  row.className = 'task-row backlog-row';
-  row.style.background = 'var(--white)';
-
-  const check = document.createElement('div');
-  check.className = 'check-circle material-symbols-outlined';
-  check.textContent = 'radio_button_unchecked';
-  check.addEventListener('click', (e) => { e.stopPropagation(); toggleComplete(item, false); });
-
-  const name = document.createElement('span');
-  name.className = 'task-name';
-  name.textContent = item.name;
-  name.addEventListener('click', (e) => {
-    e.stopPropagation();
-    startEditName(name, item, () => renderTodayView());
-    openCategoryDropdown(tag, item, false, () => renderTodayView());
-  });
-
-  const tag = document.createElement('button');
-  tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
-  tag.textContent = item.category || 'Category';
-  tag.addEventListener('mousedown', (e) => e.preventDefault());
-  tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, false, () => renderTodayView()); });
-
-  row.appendChild(check);
-  row.appendChild(name);
-  row.appendChild(tag);
-  wrap.appendChild(row);
-
-  attachSwipeAndDrag(wrap, row, item, { noDelete: true, listId: 'todayBacklogList' });
+  if (isRearranging) {
+    const row = buildRearrangeRowEl(item);
+    wrap.appendChild(row);
+    attachRearrangeDrag(wrap, row, item, 'todayBacklogList');
+  } else {
+    const row = document.createElement('div');
+    row.className = 'task-row backlog-row';
+    row.style.background = 'var(--white)';
+    const check = document.createElement('div');
+    check.className = 'check-circle material-symbols-outlined';
+    check.textContent = 'radio_button_unchecked';
+    check.addEventListener('click', (e) => { e.stopPropagation(); toggleComplete(item, false); });
+    const name = document.createElement('span');
+    name.className = 'task-name';
+    name.textContent = item.name;
+    name.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startEditName(name, item, () => renderTodayView());
+      openCategoryDropdown(tag, item, false, () => renderTodayView());
+    });
+    const tag = document.createElement('button');
+    tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
+    tag.textContent = item.category || 'Category';
+    tag.addEventListener('mousedown', (e) => e.preventDefault());
+    tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, false, () => renderTodayView()); });
+    row.appendChild(check); row.appendChild(name); row.appendChild(tag);
+    wrap.appendChild(row);
+    attachSwipeAndDrag(wrap, row, item, { noDelete: true, listId: 'todayBacklogList' });
+  }
   return wrap;
 }
 
@@ -1283,49 +1319,168 @@ function buildChoresRow(item) {
   wrap.className = 'task-row-wrap';
   wrap.dataset.id = item.id;
 
-  const deleteBg = document.createElement('div');
-  deleteBg.className = 'delete-bg';
-  deleteBg.innerHTML = '<span class="material-symbols-outlined">delete</span>';
-
-  const row = document.createElement('div');
-  row.className = 'task-row backlog-row';
-  row.style.background = 'var(--white)';
-
-  const check = document.createElement('div');
-  check.className = 'check-circle material-symbols-outlined';
-  check.textContent = 'radio_button_unchecked';
-  check.addEventListener('click', (e) => e.stopPropagation());
-
-  const name = document.createElement('span');
-  name.className = 'task-name';
-  name.textContent = item.name;
-  name.addEventListener('click', (e) => {
-    e.stopPropagation();
-    startEditName(name, item, () => {});
-    openCategoryDropdown(tag, item, false, () => renderChoresView());
-  });
-
-  const tag = document.createElement('button');
-  tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
-  tag.textContent = item.category || 'Category';
-  tag.addEventListener('mousedown', (e) => e.preventDefault());
-  tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, false, () => renderChoresView()); });
-
-  row.appendChild(check);
-  row.appendChild(name);
-  row.appendChild(tag);
-  wrap.appendChild(deleteBg);
-  wrap.appendChild(row);
-
-  attachSwipeAndDrag(wrap, row, item, { noDelete: false, listId: 'choresList' });
+  if (isRearranging) {
+    const row = buildRearrangeRowEl(item);
+    wrap.appendChild(row);
+    attachRearrangeDrag(wrap, row, item, 'choresList');
+  } else {
+    const deleteBg = document.createElement('div');
+    deleteBg.className = 'delete-bg';
+    deleteBg.innerHTML = '<span class="material-symbols-outlined">delete</span>';
+    const row = document.createElement('div');
+    row.className = 'task-row backlog-row';
+    row.style.background = 'var(--white)';
+    const check = document.createElement('div');
+    check.className = 'check-circle material-symbols-outlined';
+    check.textContent = 'radio_button_unchecked';
+    check.addEventListener('click', (e) => e.stopPropagation());
+    const name = document.createElement('span');
+    name.className = 'task-name';
+    name.textContent = item.name;
+    name.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startEditName(name, item, () => {});
+      openCategoryDropdown(tag, item, false, () => renderChoresView());
+    });
+    const tag = document.createElement('button');
+    tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
+    tag.textContent = item.category || 'Category';
+    tag.addEventListener('mousedown', (e) => e.preventDefault());
+    tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, false, () => renderChoresView()); });
+    row.appendChild(check); row.appendChild(name); row.appendChild(tag);
+    wrap.appendChild(deleteBg); wrap.appendChild(row);
+    attachSwipeAndDrag(wrap, row, item, { noDelete: false, listId: 'choresList' });
+  }
   return wrap;
 }
 
+/* Shared row element for rearrange mode — shows a drag handle on the right */
+function buildRearrangeRowEl(item) {
+  const row = document.createElement('div');
+  row.className = 'task-row backlog-row';
+  row.style.background = 'var(--white)';
+  row.style.cursor = 'grab';
+  const name = document.createElement('span');
+  name.className = 'task-name';
+  name.textContent = item.name;
+  const tag = document.createElement('span');
+  tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
+  tag.textContent = item.category || 'Category';
+  tag.style.cursor = 'default';
+  const handle = document.createElement('span');
+  handle.className = 'drag-handle material-symbols-outlined';
+  handle.textContent = 'drag_handle';
+  row.appendChild(name); row.appendChild(tag); row.appendChild(handle);
+  return row;
+}
+
+/* Enter rearrange mode — re-renders list with drag handles, shows done button */
+function enterRearrangeMode(listId) {
+  if (isRearranging) return;
+  isRearranging = true;
+  rearrangeListId = listId;
+  if (navigator.vibrate) navigator.vibrate(15);
+
+  // Re-render with rearrange rows
+  if (listId === 'choresList') renderChoresView();
+  else fitTodayBacklogToViewport();
+
+  // Lock scroll during rearrange
+  const card = document.getElementById(listId).closest('.card-backlog-today, .card-viewport-fit');
+  if (card) {
+    card.classList.add('rearrange-mode');
+    // Done button in top-right corner
+    const btn = document.createElement('button');
+    btn.className = 'rearrange-done-btn';
+    btn.innerHTML = '<span class="material-symbols-outlined">check</span>';
+    btn.addEventListener('click', exitRearrangeMode);
+    card.appendChild(btn);
+  }
+}
+
+/* Exit rearrange mode — re-renders normal rows, saves order */
+function exitRearrangeMode() {
+  isRearranging = false;
+  const card = document.querySelector('.rearrange-done-btn')?.closest('.card-backlog-today, .card-viewport-fit');
+  if (card) {
+    card.classList.remove('rearrange-mode');
+    card.querySelector('.rearrange-done-btn')?.remove();
+  }
+  persistOrder();
+  if (rearrangeListId === 'choresList') renderChoresView();
+  else fitTodayBacklogToViewport();
+  rearrangeListId = null;
+}
+
+/* Simple drag handler for rearrange mode — no hold, no swipe, immediate drag */
+function attachRearrangeDrag(wrap, row, item, listId) {
+  let startY = 0, dragStartTop = 0, dragging = false;
+  let placeholder = null, activePointerId = null;
+
+  row.addEventListener('pointerdown', (e) => {
+    activePointerId = e.pointerId;
+    startY = e.clientY;
+    row.setPointerCapture(e.pointerId);
+    row.addEventListener('pointermove', onMove);
+    row.addEventListener('pointerup', onUp);
+    row.addEventListener('pointercancel', onUp);
+  });
+
+  function onMove(e) {
+    if (e.pointerId !== activePointerId) return;
+    if (!dragging && Math.abs(e.clientY - startY) > 4) {
+      dragging = true;
+      row.classList.add('dragging');
+      document.body.style.userSelect = 'none';
+      const rect = row.getBoundingClientRect();
+      dragStartTop = rect.top;
+      row.style.position = 'fixed';
+      row.style.left = rect.left + 'px';
+      row.style.top = rect.top + 'px';
+      row.style.width = rect.width + 'px';
+      row.style.zIndex = '100';
+      placeholder = document.createElement('div');
+      placeholder.className = 'drag-placeholder';
+      placeholder.style.height = rect.height + 'px';
+      wrap.appendChild(placeholder);
+    }
+    if (dragging) {
+      e.preventDefault();
+      row.style.top = (dragStartTop + (e.clientY - startY)) + 'px';
+      const list = document.getElementById(listId);
+      const wraps = [...list.children].filter(el => el !== wrap);
+      let inserted = false;
+      for (const el of wraps) {
+        const r = el.getBoundingClientRect();
+        if (e.clientY < r.top + r.height / 2) { list.insertBefore(wrap, el); inserted = true; break; }
+      }
+      if (!inserted) list.appendChild(wrap);
+    }
+  }
+
+  function onUp(e) {
+    if (e.pointerId !== activePointerId) return;
+    row.removeEventListener('pointermove', onMove);
+    row.removeEventListener('pointerup', onUp);
+    row.removeEventListener('pointercancel', onUp);
+    if (dragging) {
+      dragging = false;
+      row.classList.remove('dragging');
+      document.body.style.userSelect = '';
+      row.style.position = ''; row.style.left = ''; row.style.top = ''; row.style.width = ''; row.style.zIndex = '';
+      if (placeholder) { placeholder.remove(); placeholder = null; }
+      // Update local order
+      const list = document.getElementById(listId);
+      const newOrder = [...list.children].map(w => w.dataset.id);
+      chores.sort((a, b) => newOrder.indexOf(String(a.id)) - newOrder.indexOf(String(b.id)));
+    }
+  }
+}
+
 function attachSwipeAndDrag(wrap, row, item, { noDelete = false, listId = 'choresList' } = {}) {
-  let startX = 0, startY = 0, currentX = 0, dragStartTop = 0;
+  let startX = 0, startY = 0, currentX = 0;
   let mode = null;
   let holdTimer = null;
-  let placeholder = null;
   let lastPointerY = 0;
   let activePointerId = null;
   const SWIPE_DELETE_THRESHOLD = 90;
@@ -1337,7 +1492,10 @@ function attachSwipeAndDrag(wrap, row, item, { noDelete = false, listId = 'chore
     startX = e.clientX; startY = e.clientY; lastPointerY = e.clientY;
     currentX = 0; mode = null; activePointerId = e.pointerId;
     row.setPointerCapture(e.pointerId);
-    holdTimer = setTimeout(() => { if (mode === null) startDrag(); }, HOLD_MS);
+    // Hold → enter rearrange mode for the whole list
+    holdTimer = setTimeout(() => {
+      if (mode === null) enterRearrangeMode(listId);
+    }, HOLD_MS);
     row.addEventListener('pointermove', onPointerMove);
     row.addEventListener('pointerup', onPointerUp);
     row.addEventListener('pointercancel', onPointerUp);
@@ -1362,9 +1520,6 @@ function attachSwipeAndDrag(wrap, row, item, { noDelete = false, listId = 'chore
       e.preventDefault();
       currentX = Math.min(0, dx);
       row.style.transform = `translateX(${currentX}px)`;
-    } else if (mode === 'drag') {
-      e.preventDefault();
-      updateDrag(e);
     }
   }
 
@@ -1382,68 +1537,11 @@ function attachSwipeAndDrag(wrap, row, item, { noDelete = false, listId = 'chore
         row.style.transform = 'translateX(0)';
         setTimeout(() => { row.style.transition = ''; }, 200);
       }
-    } else if (mode === 'drag') {
-      endDrag();
     }
     mode = null;
   }
 
   row.addEventListener('pointerdown', onPointerDown);
-
-  function startDrag() {
-    mode = 'drag';
-    row.classList.add('dragging');
-    document.body.style.userSelect = 'none';
-    document.body.style.webkitUserSelect = 'none';
-    const rect = row.getBoundingClientRect();
-    dragStartTop = rect.top;
-    // Make the row float visually by fixing it in place —
-    // but keep it in the DOM where it is so pointer capture stays intact.
-    row.style.position = 'fixed';
-    row.style.left = rect.left + 'px';
-    row.style.top = rect.top + 'px';
-    row.style.width = rect.width + 'px';
-    row.style.zIndex = '100';
-    // Insert a placeholder in the wrap to hold the space the row vacated
-    placeholder = document.createElement('div');
-    placeholder.className = 'drag-placeholder';
-    placeholder.style.height = rect.height + 'px';
-    wrap.appendChild(placeholder);
-    if (navigator.vibrate) navigator.vibrate(10);
-  }
-
-  function updateDrag(e) {
-    const dy = e.clientY - startY;
-    row.style.top = (dragStartTop + dy) + 'px';
-    const list = document.getElementById(listId);
-    const wraps = [...list.children].filter(el => el !== wrap);
-    let inserted = false;
-    for (const el of wraps) {
-      const r = el.getBoundingClientRect();
-      if (e.clientY < r.top + r.height / 2) {
-        list.insertBefore(wrap, el);
-        inserted = true;
-        break;
-      }
-    }
-    if (!inserted) list.appendChild(wrap);
-  }
-
-  function endDrag() {
-    document.body.style.userSelect = '';
-    document.body.style.webkitUserSelect = '';
-    row.classList.remove('dragging');
-    row.style.position = '';
-    row.style.left = '';
-    row.style.top = '';
-    row.style.width = '';
-    row.style.zIndex = '';
-    if (placeholder) { placeholder.remove(); placeholder = null; }
-    const list = document.getElementById(listId);
-    const newOrder = [...list.children].map(w => w.dataset.id);
-    chores.sort((a, b) => newOrder.indexOf(String(a.id)) - newOrder.indexOf(String(b.id)));
-    persistOrder();
-  }
 }
 
 async function persistOrder() {
