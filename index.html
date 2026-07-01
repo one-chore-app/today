@@ -43,7 +43,9 @@ body {
   margin: 0;
   background: var(--bg);
   color: #fff;
-  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   display: flex;
   justify-content: center;
 }
@@ -51,7 +53,9 @@ body {
 .app {
   width: 100%;
   max-width: 480px;
-  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   padding: 23px 8px 8px;
   position: relative;
   display: flex;
@@ -539,14 +543,16 @@ body {
   width: 100%;
   display: flex;
   justify-content: center;
-  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   background: var(--bg);
 }
 
 .login-shell {
   width: 100%;
   max-width: 480px;
-  min-height: 100dvh;
+  height: 100dvh;
   padding: 23px 8px 8px;
   display: flex;
   flex-direction: column;
@@ -720,7 +726,13 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const APP_PASSWORD = "shelby"; // <-- update this to set your password
 const USER_NAME = "Shelby";
 
-function todayStr() { return new Date().toISOString().slice(0, 10); }
+function todayStr() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 /* ====================== AUTH ====================== */
 function checkAuth() {
