@@ -548,13 +548,9 @@ body {
 }
 
 .task-row.dragging {
-  opacity: 0.9;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  opacity: 0.6;
+  background: var(--lavender) !important;
   border-radius: 999px;
-  background: var(--white);
-  z-index: 100;
-  position: relative;
-  overflow: hidden;
 }
 
 .drag-placeholder {
@@ -1404,99 +1400,58 @@ function exitRearrangeMode() {
   rearrangeListId = null;
 }
 
-/* Drag handler for rearrange mode — triggered only from the handle on the left */
+/* Drag handler for rearrange mode — triggered only from the handle on the left.
+   Pure DOM reorder with document-level listeners so moving the wrap in the
+   DOM never breaks event delivery. */
 function attachRearrangeDrag(wrap, row, item, listId) {
   const handle = row.querySelector('.drag-handle');
   if (!handle) return;
-  let startY = 0, dragStartTop = 0, dragging = false;
-  let placeholder = null, activePointerId = null;
 
   handle.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
     e.stopPropagation();
-    activePointerId = e.pointerId;
-    startY = e.clientY;
-    // Capture on the handle to start — will switch to document once drag begins
-    handle.setPointerCapture(e.pointerId);
-    handle.addEventListener('pointermove', onHandleMove);
-    handle.addEventListener('pointerup', onHandleUp);
-    handle.addEventListener('pointercancel', onHandleUp);
-  });
+    const pointerId = e.pointerId;
+    let active = true;
 
-  function onHandleMove(e) {
-    if (e.pointerId !== activePointerId) return;
-    if (Math.abs(e.clientY - startY) > 4) {
-      // Transition to document-level listeners before the row moves,
-      // so capture doesn't get lost when we apply position:fixed
-      handle.removeEventListener('pointermove', onHandleMove);
-      handle.removeEventListener('pointerup', onHandleUp);
-      handle.removeEventListener('pointercancel', onHandleUp);
-      handle.releasePointerCapture(activePointerId);
-      beginDrag(e);
-    }
-  }
-
-  function onHandleUp(e) {
-    if (e.pointerId !== activePointerId) return;
-    handle.removeEventListener('pointermove', onHandleMove);
-    handle.removeEventListener('pointerup', onHandleUp);
-    handle.removeEventListener('pointercancel', onHandleUp);
-  }
-
-  function beginDrag(e) {
-    dragging = true;
     row.classList.add('dragging');
     document.body.style.userSelect = 'none';
-    const rect = row.getBoundingClientRect();
-    dragStartTop = rect.top;
-    row.style.position = 'fixed';
-    row.style.left = rect.left + 'px';
-    row.style.top = rect.top + 'px';
-    row.style.width = rect.width + 'px';
-    row.style.zIndex = '100';
-    placeholder = document.createElement('div');
-    placeholder.className = 'drag-placeholder';
-    placeholder.style.height = rect.height + 'px';
-    wrap.appendChild(placeholder);
 
-    // Use document listeners — immune to DOM position changes
-    document.addEventListener('pointermove', onDocMove, { passive: false });
-    document.addEventListener('pointerup', onDocUp);
-    document.addEventListener('pointercancel', onDocUp);
-
-    // Fire first move immediately so row snaps to finger
-    onDocMove(e);
-  }
-
-  function onDocMove(e) {
-    if (e.pointerId !== activePointerId) return;
-    e.preventDefault();
-    row.style.top = (dragStartTop + (e.clientY - startY)) + 'px';
-    const list = document.getElementById(listId);
-    const wraps = [...list.children].filter(el => el !== wrap);
-    let inserted = false;
-    for (const el of wraps) {
-      const r = el.getBoundingClientRect();
-      if (e.clientY < r.top + r.height / 2) { list.insertBefore(wrap, el); inserted = true; break; }
+    function onMove(ev) {
+      if (ev.pointerId !== pointerId || !active) return;
+      ev.preventDefault();
+      const list = document.getElementById(listId);
+      if (!list) return;
+      const allWraps = [...list.children];
+      for (const el of allWraps) {
+        if (el === wrap) continue;
+        const r = el.getBoundingClientRect();
+        if (ev.clientY < r.top + r.height / 2) {
+          list.insertBefore(wrap, el);
+          return;
+        }
+      }
+      list.appendChild(wrap);
     }
-    if (!inserted) list.appendChild(wrap);
-  }
 
-  function onDocUp(e) {
-    if (e.pointerId !== activePointerId) return;
-    document.removeEventListener('pointermove', onDocMove);
-    document.removeEventListener('pointerup', onDocUp);
-    document.removeEventListener('pointercancel', onDocUp);
-    if (dragging) {
-      dragging = false;
+    function onUp(ev) {
+      if (ev.pointerId !== pointerId) return;
+      active = false;
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
       row.classList.remove('dragging');
       document.body.style.userSelect = '';
-      row.style.position = ''; row.style.left = ''; row.style.top = ''; row.style.width = ''; row.style.zIndex = '';
-      if (placeholder) { placeholder.remove(); placeholder = null; }
       const list = document.getElementById(listId);
-      const newOrder = [...list.children].map(w => w.dataset.id);
-      chores.sort((a, b) => newOrder.indexOf(String(a.id)) - newOrder.indexOf(String(b.id)));
+      if (list) {
+        const newOrder = [...list.children].map(w => w.dataset.id);
+        chores.sort((a, b) => newOrder.indexOf(String(a.id)) - newOrder.indexOf(String(b.id)));
+      }
     }
-  }
+
+    document.addEventListener('pointermove', onMove, { passive: false });
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  }, { passive: false });
 }
 
 function attachSwipeAndDrag(wrap, row, item, { noDelete = false, listId = 'choresList' } = {}) {
