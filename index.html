@@ -563,17 +563,13 @@ body {
 }
 
 /* Rearrange mode */
-.rearrange-mode .viewport-scroll-list,
-.rearrange-mode .today-backlog-scroll {
-  touch-action: none;
-}
-
 .drag-handle {
   color: #bbb;
   font-size: 20px;
   flex-shrink: 0;
   cursor: grab;
-  margin-left: 4px;
+  margin-right: 4px;
+  touch-action: none; /* only the handle blocks scroll, not the whole list */
 }
 
 .rearrange-done-btn {
@@ -1359,7 +1355,9 @@ function buildRearrangeRowEl(item) {
   const row = document.createElement('div');
   row.className = 'task-row backlog-row';
   row.style.background = 'var(--white)';
-  row.style.cursor = 'grab';
+  const handle = document.createElement('span');
+  handle.className = 'drag-handle material-symbols-outlined';
+  handle.textContent = 'drag_handle';
   const name = document.createElement('span');
   name.className = 'task-name';
   name.textContent = item.name;
@@ -1367,10 +1365,7 @@ function buildRearrangeRowEl(item) {
   tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
   tag.textContent = item.category || 'Category';
   tag.style.cursor = 'default';
-  const handle = document.createElement('span');
-  handle.className = 'drag-handle material-symbols-outlined';
-  handle.textContent = 'drag_handle';
-  row.appendChild(name); row.appendChild(tag); row.appendChild(handle);
+  row.appendChild(handle); row.appendChild(name); row.appendChild(tag);
   return row;
 }
 
@@ -1388,8 +1383,6 @@ function enterRearrangeMode(listId) {
   // Lock scroll during rearrange
   const card = document.getElementById(listId).closest('.card-backlog-today, .card-viewport-fit');
   if (card) {
-    card.classList.add('rearrange-mode');
-    // Done button in top-right corner
     const btn = document.createElement('button');
     btn.className = 'rearrange-done-btn';
     btn.innerHTML = '<span class="material-symbols-outlined">check</span>';
@@ -1403,7 +1396,6 @@ function exitRearrangeMode() {
   isRearranging = false;
   const card = document.querySelector('.rearrange-done-btn')?.closest('.card-backlog-today, .card-viewport-fit');
   if (card) {
-    card.classList.remove('rearrange-mode');
     card.querySelector('.rearrange-done-btn')?.remove();
   }
   persistOrder();
@@ -1412,18 +1404,21 @@ function exitRearrangeMode() {
   rearrangeListId = null;
 }
 
-/* Simple drag handler for rearrange mode — no hold, no swipe, immediate drag */
+/* Drag handler for rearrange mode — triggered only from the handle on the left */
 function attachRearrangeDrag(wrap, row, item, listId) {
+  const handle = row.querySelector('.drag-handle');
+  if (!handle) return;
   let startY = 0, dragStartTop = 0, dragging = false;
   let placeholder = null, activePointerId = null;
 
-  row.addEventListener('pointerdown', (e) => {
+  handle.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
     activePointerId = e.pointerId;
     startY = e.clientY;
-    row.setPointerCapture(e.pointerId);
-    row.addEventListener('pointermove', onMove);
-    row.addEventListener('pointerup', onUp);
-    row.addEventListener('pointercancel', onUp);
+    handle.setPointerCapture(e.pointerId);
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointercancel', onUp);
   });
 
   function onMove(e) {
@@ -1460,16 +1455,15 @@ function attachRearrangeDrag(wrap, row, item, listId) {
 
   function onUp(e) {
     if (e.pointerId !== activePointerId) return;
-    row.removeEventListener('pointermove', onMove);
-    row.removeEventListener('pointerup', onUp);
-    row.removeEventListener('pointercancel', onUp);
+    handle.removeEventListener('pointermove', onMove);
+    handle.removeEventListener('pointerup', onUp);
+    handle.removeEventListener('pointercancel', onUp);
     if (dragging) {
       dragging = false;
       row.classList.remove('dragging');
       document.body.style.userSelect = '';
       row.style.position = ''; row.style.left = ''; row.style.top = ''; row.style.width = ''; row.style.zIndex = '';
       if (placeholder) { placeholder.remove(); placeholder = null; }
-      // Update local order
       const list = document.getElementById(listId);
       const newOrder = [...list.children].map(w => w.dataset.id);
       chores.sort((a, b) => newOrder.indexOf(String(a.id)) - newOrder.indexOf(String(b.id)));
