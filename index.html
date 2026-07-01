@@ -88,7 +88,8 @@ body {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1.5px solid var(--white);
+  border: none;
+  box-shadow: inset 0 0 0 1.5px var(--white);
   color: var(--white);
   display: flex;
   align-items: center;
@@ -352,7 +353,8 @@ body {
 }
 
 .pill-btn {
-  border: 1.5px solid var(--ink);
+  border: none;
+  box-shadow: inset 0 0 0 1.5px var(--ink);
   color: var(--ink);
   background: transparent;
   border-radius: 999px;
@@ -441,7 +443,8 @@ body {
 
 .tag-dropdown .new-cat-input input {
   flex: 1;
-  border: 1.5px solid #ddd;
+  border: none;
+  box-shadow: inset 0 0 0 1.5px #ddd;
   border-radius: 999px;
   padding: 8px 14px;
   font-size: 14px;
@@ -452,7 +455,8 @@ body {
   width: auto;
   margin-bottom: 0;
   background: transparent;
-  border: 1.5px solid var(--ink);
+  border: none;
+  box-shadow: inset 0 0 0 1.5px var(--ink);
   color: var(--ink);
   border-radius: 999px;
   padding: 6px 20px;
@@ -498,11 +502,7 @@ body {
 }
 
 .task-row-wrap .task-row {
-  touch-action: pan-y;
-}
-
-.task-row-wrap .task-row.dragging {
-  touch-action: none;
+  background: var(--white);
 }
 
 .delete-bg {
@@ -527,6 +527,7 @@ body {
   background: var(--white);
   z-index: 10;
   position: relative;
+  border-radius: 999px;
 }
 
 .drag-placeholder {
@@ -565,7 +566,8 @@ body {
   width: 210px;
   text-align: center;
   background: transparent;
-  border: 1.5px solid var(--white);
+  border: none;
+  box-shadow: inset 0 0 0 1.5px var(--white);
   color: var(--white);
   border-radius: 999px;
   padding: 12px 20px;
@@ -1248,17 +1250,23 @@ function buildChoresRow(item) {
 
 function attachSwipeAndDrag(wrap, row, item) {
   let startX = 0, startY = 0, currentX = 0, dragStartTop = 0;
-  let mode = null;
+  let mode = null; // 'scroll' | 'swipe' | 'drag' | null
   let holdTimer = null;
   let placeholder = null;
+  let lastPointerY = 0;
   const SWIPE_DELETE_THRESHOLD = 90;
-  const HOLD_MS = 350;
-  const MOVE_CANCEL_HOLD = 10;
+  const HOLD_MS = 400;
+  const INTENT_THRESHOLD = 8; // px before we decide scroll vs swipe vs hold
 
   function onPointerDown(e) {
     if (e.target.closest('.tag') || e.target.isContentEditable) return;
-    startX = e.clientX; startY = e.clientY; currentX = 0; mode = null;
-    holdTimer = setTimeout(() => { if (mode === null) startDrag(e); }, HOLD_MS);
+    startX = e.clientX; startY = e.clientY; lastPointerY = e.clientY;
+    currentX = 0; mode = null;
+    // Capture the pointer immediately so pointercancel doesn't fire when
+    // the browser would otherwise claim the touch for native scrolling.
+    // We'll manually scroll the list if the user is clearly swiping vertically.
+    row.setPointerCapture(e.pointerId);
+    holdTimer = setTimeout(() => { if (mode === null) startDrag(); }, HOLD_MS);
     row.addEventListener('pointermove', onPointerMove);
     row.addEventListener('pointerup', onPointerUp);
     row.addEventListener('pointercancel', onPointerUp);
@@ -1267,13 +1275,23 @@ function attachSwipeAndDrag(wrap, row, item) {
   function onPointerMove(e) {
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
-    if (mode === null) {
-      if (Math.abs(dx) > MOVE_CANCEL_HOLD || Math.abs(dy) > MOVE_CANCEL_HOLD) {
-        clearTimeout(holdTimer);
-        if (Math.abs(dx) > Math.abs(dy)) mode = 'swipe';
+    const deltaY = e.clientY - lastPointerY;
+    lastPointerY = e.clientY;
+
+    if (mode === null && (Math.abs(dx) > INTENT_THRESHOLD || Math.abs(dy) > INTENT_THRESHOLD)) {
+      clearTimeout(holdTimer);
+      if (Math.abs(dx) > Math.abs(dy)) {
+        mode = 'swipe';
+      } else {
+        mode = 'scroll';
       }
     }
-    if (mode === 'swipe') {
+
+    if (mode === 'scroll') {
+      // Manually scroll the list container since we captured the pointer
+      const scrollEl = row.closest('.viewport-scroll-list');
+      if (scrollEl) scrollEl.scrollTop -= deltaY;
+    } else if (mode === 'swipe') {
       e.preventDefault();
       currentX = Math.min(0, dx);
       row.style.transform = `translateX(${currentX}px)`;
@@ -1304,11 +1322,9 @@ function attachSwipeAndDrag(wrap, row, item) {
 
   row.addEventListener('pointerdown', onPointerDown);
 
-  function startDrag(e) {
+  function startDrag() {
     mode = 'drag';
     row.classList.add('dragging');
-    row.style.touchAction = 'none';
-    // Disable text selection for the entire document during drag
     document.body.style.userSelect = 'none';
     document.body.style.webkitUserSelect = 'none';
     const rect = row.getBoundingClientRect();
@@ -1341,20 +1357,16 @@ function attachSwipeAndDrag(wrap, row, item) {
   }
 
   function endDrag() {
-    // Always restore text selection and touch-action
     document.body.style.userSelect = '';
     document.body.style.webkitUserSelect = '';
     row.classList.remove('dragging');
-    row.style.touchAction = '';
     row.style.position = ''; row.style.left = ''; row.style.top = ''; row.style.width = ''; row.style.zIndex = '';
     const list = document.getElementById('choresList');
-    // If placeholder is still in DOM, insert wrap before it; otherwise append to list
     if (placeholder && placeholder.parentNode === list) {
       list.insertBefore(wrap, placeholder);
     } else if (!wrap.parentNode) {
       list.appendChild(wrap);
     }
-    // Ensure row is back inside wrap (it was detached to document.body)
     if (row.parentNode !== wrap) wrap.appendChild(row);
     if (placeholder) { placeholder.remove(); placeholder = null; }
     const newOrder = [...list.children].map(w => w.dataset.id);
