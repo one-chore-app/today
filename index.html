@@ -93,7 +93,7 @@ body {
   height: 40px;
   border-radius: 50%;
   border: none;
-  box-shadow: inset 0 0 0 1.5px var(--white);
+  outline: 1.5px solid var(--white);
   color: var(--white);
   display: flex;
   align-items: center;
@@ -124,7 +124,7 @@ body {
 
 .card {
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 15px 16px 16px;
 }
 
 /* Progress card */
@@ -188,7 +188,7 @@ body {
 .section-label {
   font-size: 14px;
   font-weight: 700;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   opacity: 0.9;
 }
 
@@ -319,6 +319,30 @@ body {
   overflow-y: auto;
   user-select: none;
   -webkit-user-select: none;
+  padding-bottom: 72px; /* fade is 56px + 16px breathing room */
+  box-sizing: border-box;
+}
+
+
+/* Top fade — narrower than bottom, only visible once you've scrolled down.
+   Controlled by opacity via JS on scroll. */
+.scroll-list-wrap::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  pointer-events: none;
+  border-radius: 4px 4px 0 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 1;
+}
+
+.card-backlog-today .scroll-list-wrap::before,
+.card-viewport-fit .scroll-list-wrap::before {
+  background: linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
 }
 
 /* Fade overlay — sits on top of the scroll container, fades from
@@ -332,6 +356,7 @@ body {
   height: 56px;
   pointer-events: none;
   border-radius: 0 0 4px 4px;
+  z-index: 1;
 }
 
 .card-backlog-today .scroll-list-wrap::after,
@@ -339,8 +364,11 @@ body {
   background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
 }
 
-.card-backlog-today .bottom-row,
-.card-viewport-fit .bottom-row {
+.scroll-list-wrap.show-top-fade::before {
+  opacity: 1;
+}
+
+
   margin-top: auto;
   padding-top: 16px;
   flex-shrink: 0;
@@ -363,7 +391,7 @@ body {
 
 .pill-btn {
   border: none;
-  box-shadow: inset 0 0 0 1.5px var(--ink);
+  outline: 1.5px solid var(--ink);
   color: var(--ink);
   background: transparent;
   border-radius: 999px;
@@ -453,7 +481,7 @@ body {
 .tag-dropdown .new-cat-input input {
   flex: 1;
   border: none;
-  box-shadow: inset 0 0 0 1.5px #ddd;
+  outline: 1.5px solid #ddd;
   border-radius: 999px;
   padding: 8px 14px;
   font-size: 14px;
@@ -465,7 +493,7 @@ body {
   margin-bottom: 0;
   background: transparent;
   border: none;
-  box-shadow: inset 0 0 0 1.5px var(--ink);
+  outline: 1.5px solid var(--ink);
   color: var(--ink);
   border-radius: 999px;
   padding: 6px 20px;
@@ -576,7 +604,7 @@ body {
   text-align: center;
   background: transparent;
   border: none;
-  box-shadow: inset 0 0 0 1.5px var(--white);
+  outline: 1.5px solid var(--white);
   color: var(--white);
   border-radius: 999px;
   padding: 12px 20px;
@@ -956,6 +984,7 @@ function fitTodayBacklogToViewport() {
   if (chores.length === 0) { bEmpty.hidden = false; return; }
   bEmpty.hidden = true;
   chores.forEach(item => bList.appendChild(buildTodayBacklogRow(item)));
+  attachTopFade(bList.closest('.today-backlog-scroll'));
 }
 
 let resizeTimer = null;
@@ -1173,6 +1202,24 @@ function fitCardToViewport(cardSelector) {
   card.style.height = Math.max(viewportHeight - top - 8, 80) + 'px';
 }
 
+/* Attach a scroll listener to a scroll container that fades in the top
+   gradient once the user has scrolled down even a little. */
+function attachTopFade(scrollEl) {
+  if (!scrollEl || scrollEl._topFadeAttached) return;
+  scrollEl._topFadeAttached = true;
+  const wrap = scrollEl.closest('.scroll-list-wrap');
+  if (!wrap) return;
+  const update = () => {
+    // Use a CSS custom property so the ::before pseudo-element picks it up
+    wrap.style.setProperty('--top-fade-opacity', scrollEl.scrollTop > 4 ? '1' : '0');
+    // Apply directly via a helper class since pseudo-elements can't be
+    // targeted with inline style — we toggle a class instead
+    wrap.classList.toggle('show-top-fade', scrollEl.scrollTop > 4);
+  };
+  scrollEl.addEventListener('scroll', update, { passive: true });
+  update();
+}
+
 function renderChoresView() {
   fitCardToViewport('#view-chores .card-viewport-fit');
   const list = document.getElementById('choresList');
@@ -1181,21 +1228,19 @@ function renderChoresView() {
   if (chores.length === 0) { empty.hidden = false; return; }
   empty.hidden = true;
   chores.forEach(item => list.appendChild(buildChoresRow(item)));
+  attachTopFade(list.closest('.viewport-scroll-list'));
 
   const last = chores[chores.length - 1];
   if (last && last.name === 'New Item') {
     const lastRow = list.lastElementChild;
-    const nameEl = lastRow.querySelector('.task-name');
-    // Scroll the list so the new item sits above the gradient fade.
-    // scrollIntoView alone lands it behind the ::after overlay; we add
-    // extra bottom padding equal to the fade height so the item clears it.
+    const nameEl = lastRow ? lastRow.querySelector('.task-name') : null;
     if (lastRow) {
       const scrollEl = list.closest('.viewport-scroll-list, .today-backlog-scroll');
       if (scrollEl) {
-        // Scroll to bottom — new item is always last
-        scrollEl.scrollTop = scrollEl.scrollHeight;
-        // Nudge up enough to clear the 56px fade overlay
-        scrollEl.scrollTop -= 56;
+        const rowBottom = lastRow.getBoundingClientRect().bottom;
+        const containerBottom = scrollEl.getBoundingClientRect().bottom;
+        const overlap = rowBottom - (containerBottom - 56 - 8); // 8px buffer above fade
+        if (overlap > 0) scrollEl.scrollTop += overlap;
       }
     }
     if (nameEl) startEditName(nameEl, last, () => {});
@@ -1433,6 +1478,7 @@ function renderHistoryView() {
   if (allCompletions.length === 0) { empty.hidden = false; return; }
   empty.hidden = true;
   allCompletions.forEach(item => list.appendChild(buildHistoryRow(item)));
+  attachTopFade(list.closest('.viewport-scroll-list'));
 }
 
 function buildHistoryRow(item) {
