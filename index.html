@@ -784,6 +784,10 @@ async function loadAllData() {
   if (completionsRes.error) console.error('loadCompletions error', JSON.stringify(completionsRes.error));
   chores = choresRes.data || [];
   allCompletions = completionsRes.data || [];
+  // TEMP DEBUG — remove after diagnosing
+  console.log('todayStr():', todayStr());
+  console.log('allCompletions sample:', allCompletions.slice(0,3).map(c => ({ id: c.id, name: c.name, completed_date: c.completed_date, type: typeof c.completed_date })));
+  console.log('todayCompletions count:', allCompletions.filter(c => c.completed_date === todayStr()).length);
 }
 
 /* ====================== ROUTER ====================== */
