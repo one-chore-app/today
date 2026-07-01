@@ -16,7 +16,7 @@
   --yellow: #FFF700;
   --blue: #003DFF;
   --ink: #231f20;
-  --radius: 30px;
+  --radius: 40px;
   font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -56,7 +56,7 @@ body {
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
-  padding: 21px 8px 8px;
+  padding: 21px 0 0;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -68,7 +68,7 @@ body {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 21px;
-  padding: 0 16px;
+  padding: 0 24px;
 }
 
 .header h1 {
@@ -117,14 +117,14 @@ body {
 .cards-wrap {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
   flex: 1;
   min-height: 0;
 }
 
 .card {
   border-radius: var(--radius);
-  padding: 12px 16px 16px;
+  padding: 12px 0 0;
 }
 
 /* Progress card */
@@ -139,6 +139,7 @@ body {
   align-items: center;
   font-size: 14px;
   margin-bottom: 32px;
+  padding: 0 24px;
 }
 
 .progress-date {
@@ -176,13 +177,16 @@ body {
   font-size: 22px;
   font-weight: 700;
   line-height: 1.13;
-  margin: 0;
+  margin: 0 0 2px;
+  padding: 0 24px;
 }
 
 /* Completed card */
 .card-completed {
   background: var(--olive);
   color: var(--white);
+  margin-top: -2px;
+  z-index: 1;
 }
 
 .section-label {
@@ -190,11 +194,13 @@ body {
   font-weight: 700;
   margin-bottom: 4px;
   opacity: 0.9;
+  padding: 0 24px;
 }
 
 .card-backlog .section-label {
   color: var(--ink);
   opacity: 1;
+  padding-top: 4px;
 }
 
 .task-row {
@@ -277,6 +283,8 @@ body {
   background: var(--white);
   color: var(--ink);
   position: relative;
+  margin-top: -2px;
+  z-index: 2;
 }
 
 .backlog-row .task-name, .history-row .task-name {
@@ -289,6 +297,7 @@ body {
   justify-content: flex-end;
   gap: 12px;
   margin-top: 20px;
+  padding: 0 24px;
 }
 
 
@@ -321,7 +330,7 @@ body {
   overflow-y: auto;
   user-select: none;
   -webkit-user-select: none;
-  padding-bottom: 44px;
+  padding-bottom: 68px;
   box-sizing: border-box;
 }
 
@@ -348,6 +357,9 @@ body {
 .card-viewport-fit .bottom-row {
   margin-top: auto;
   padding-top: 16px;
+  padding-left: 24px;
+  padding-right: 24px;
+  padding-bottom: 16px;
   flex-shrink: 0;
   position: relative;
 }
@@ -357,10 +369,10 @@ body {
 .card-viewport-fit .bottom-row::before {
   content: '';
   position: absolute;
-  top: -28px;
-  left: -16px;
-  right: -16px;
-  height: 28px;
+  top: -52px;
+  left: 0;
+  right: 0;
+  height: 52px;
   pointer-events: none;
   z-index: 2;
   background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
@@ -398,8 +410,8 @@ body {
 }
 
 .fab-add {
-  width: 62px;
-  height: 62px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: var(--yellow);
   color: var(--ink);
@@ -524,6 +536,7 @@ body {
 .task-row-wrap {
   position: relative;
   overflow: hidden;
+  padding: 0 24px;
   border-radius: 12px;
 }
 
@@ -548,9 +561,12 @@ body {
 }
 
 .task-row.dragging {
-  opacity: 0.6;
-  background: var(--lavender) !important;
+  background: rgba(204, 214, 255, 0.3) !important;
   border-radius: 999px;
+}
+
+.task-row.dragging * {
+  opacity: 1;
 }
 
 .drag-placeholder {
@@ -603,7 +619,7 @@ body {
   width: 100%;
   max-width: 480px;
   height: 100dvh;
-  padding: 21px 8px 8px;
+  padding: 21px 0 0;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -1261,7 +1277,7 @@ function renderChoresView() {
       if (scrollEl) {
         const rowBottom = lastRow.getBoundingClientRect().bottom;
         const containerBottom = scrollEl.getBoundingClientRect().bottom;
-        const overlap = rowBottom - (containerBottom - 28 - 8); // 8px buffer above fade
+        const overlap = rowBottom - (containerBottom - 52 - 8); // 8px buffer above fade
         if (overlap > 0) scrollEl.scrollTop += overlap;
       }
     }
