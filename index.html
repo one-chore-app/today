@@ -189,22 +189,20 @@ body {
   color: var(--white);
   margin-top: -2px;
   z-index: 1;
-  padding-top: 20px;
+  padding-top: 0;
   padding-bottom: 22px;
 }
 
 .section-label {
   font-size: 14px;
   font-weight: 700;
-  margin-bottom: 4px;
   opacity: 0.9;
-  padding: 0 24px;
+  padding: 20px 24px 6px;
 }
 
 .card-backlog .section-label {
   color: var(--ink);
   opacity: 1;
-  padding-top: 20px;
 }
 
 .task-row {
@@ -294,6 +292,7 @@ body {
   position: relative;
   margin-top: -2px;
   z-index: 2;
+  padding-top: 0;
 }
 
 .backlog-row .task-name, .history-row .task-name {
@@ -441,10 +440,10 @@ body {
 
 .restore-icon {
   font-size: 20px;
-  color: var(--ink);
+  color: var(--blue);
   cursor: pointer;
   flex-shrink: 0;
-  margin-left: 4px;
+  margin-right: 4px;
 }
 
 /* Category dropdown */
@@ -1581,9 +1580,11 @@ function buildHistoryRow(item) {
   const row = document.createElement('div');
   row.className = 'task-row history-row';
 
-  const check = document.createElement('div');
-  check.className = 'check-circle material-symbols-outlined';
-  check.textContent = 'check_circle';
+  const restore = document.createElement('span');
+  restore.className = 'restore-icon material-symbols-outlined';
+  restore.textContent = 'autorenew';
+  restore.title = 'Add back to Back Log';
+  restore.addEventListener('click', (e) => restoreItem(item, e.currentTarget));
 
   const name = document.createElement('span');
   name.className = 'task-name';
@@ -1594,16 +1595,9 @@ function buildHistoryRow(item) {
   tag.textContent = item.category || 'No category';
   tag.style.cursor = 'default';
 
-  const restore = document.createElement('span');
-  restore.className = 'restore-icon material-symbols-outlined';
-  restore.textContent = 'autorenew';
-  restore.title = 'Add back to Back Log';
-  restore.addEventListener('click', (e) => restoreItem(item, e.currentTarget));
-
-  row.appendChild(check);
+  row.appendChild(restore);
   row.appendChild(name);
   row.appendChild(tag);
-  row.appendChild(restore);
   return row;
 }
 
