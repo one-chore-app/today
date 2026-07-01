@@ -1415,49 +1415,77 @@ function attachRearrangeDrag(wrap, row, item, listId) {
     e.stopPropagation();
     activePointerId = e.pointerId;
     startY = e.clientY;
+    // Capture on the handle to start — will switch to document once drag begins
     handle.setPointerCapture(e.pointerId);
-    handle.addEventListener('pointermove', onMove);
-    handle.addEventListener('pointerup', onUp);
-    handle.addEventListener('pointercancel', onUp);
+    handle.addEventListener('pointermove', onHandleMove);
+    handle.addEventListener('pointerup', onHandleUp);
+    handle.addEventListener('pointercancel', onHandleUp);
   });
 
-  function onMove(e) {
+  function onHandleMove(e) {
     if (e.pointerId !== activePointerId) return;
-    if (!dragging && Math.abs(e.clientY - startY) > 4) {
-      dragging = true;
-      row.classList.add('dragging');
-      document.body.style.userSelect = 'none';
-      const rect = row.getBoundingClientRect();
-      dragStartTop = rect.top;
-      row.style.position = 'fixed';
-      row.style.left = rect.left + 'px';
-      row.style.top = rect.top + 'px';
-      row.style.width = rect.width + 'px';
-      row.style.zIndex = '100';
-      placeholder = document.createElement('div');
-      placeholder.className = 'drag-placeholder';
-      placeholder.style.height = rect.height + 'px';
-      wrap.appendChild(placeholder);
-    }
-    if (dragging) {
-      e.preventDefault();
-      row.style.top = (dragStartTop + (e.clientY - startY)) + 'px';
-      const list = document.getElementById(listId);
-      const wraps = [...list.children].filter(el => el !== wrap);
-      let inserted = false;
-      for (const el of wraps) {
-        const r = el.getBoundingClientRect();
-        if (e.clientY < r.top + r.height / 2) { list.insertBefore(wrap, el); inserted = true; break; }
-      }
-      if (!inserted) list.appendChild(wrap);
+    if (Math.abs(e.clientY - startY) > 4) {
+      // Transition to document-level listeners before the row moves,
+      // so capture doesn't get lost when we apply position:fixed
+      handle.removeEventListener('pointermove', onHandleMove);
+      handle.removeEventListener('pointerup', onHandleUp);
+      handle.removeEventListener('pointercancel', onHandleUp);
+      handle.releasePointerCapture(activePointerId);
+      beginDrag(e);
     }
   }
 
-  function onUp(e) {
+  function onHandleUp(e) {
     if (e.pointerId !== activePointerId) return;
-    handle.removeEventListener('pointermove', onMove);
-    handle.removeEventListener('pointerup', onUp);
-    handle.removeEventListener('pointercancel', onUp);
+    handle.removeEventListener('pointermove', onHandleMove);
+    handle.removeEventListener('pointerup', onHandleUp);
+    handle.removeEventListener('pointercancel', onHandleUp);
+  }
+
+  function beginDrag(e) {
+    dragging = true;
+    row.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    const rect = row.getBoundingClientRect();
+    dragStartTop = rect.top;
+    row.style.position = 'fixed';
+    row.style.left = rect.left + 'px';
+    row.style.top = rect.top + 'px';
+    row.style.width = rect.width + 'px';
+    row.style.zIndex = '100';
+    placeholder = document.createElement('div');
+    placeholder.className = 'drag-placeholder';
+    placeholder.style.height = rect.height + 'px';
+    wrap.appendChild(placeholder);
+
+    // Use document listeners — immune to DOM position changes
+    document.addEventListener('pointermove', onDocMove, { passive: false });
+    document.addEventListener('pointerup', onDocUp);
+    document.addEventListener('pointercancel', onDocUp);
+
+    // Fire first move immediately so row snaps to finger
+    onDocMove(e);
+  }
+
+  function onDocMove(e) {
+    if (e.pointerId !== activePointerId) return;
+    e.preventDefault();
+    row.style.top = (dragStartTop + (e.clientY - startY)) + 'px';
+    const list = document.getElementById(listId);
+    const wraps = [...list.children].filter(el => el !== wrap);
+    let inserted = false;
+    for (const el of wraps) {
+      const r = el.getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) { list.insertBefore(wrap, el); inserted = true; break; }
+    }
+    if (!inserted) list.appendChild(wrap);
+  }
+
+  function onDocUp(e) {
+    if (e.pointerId !== activePointerId) return;
+    document.removeEventListener('pointermove', onDocMove);
+    document.removeEventListener('pointerup', onDocUp);
+    document.removeEventListener('pointercancel', onDocUp);
     if (dragging) {
       dragging = false;
       row.classList.remove('dragging');
