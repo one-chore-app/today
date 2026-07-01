@@ -201,7 +201,7 @@ body {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 3px 0;
+  padding: 2px 0;
   cursor: pointer;
   user-select: none;
   position: relative;
@@ -1186,6 +1186,18 @@ function renderChoresView() {
   if (last && last.name === 'New Item') {
     const lastRow = list.lastElementChild;
     const nameEl = lastRow.querySelector('.task-name');
+    // Scroll the list so the new item sits above the gradient fade.
+    // scrollIntoView alone lands it behind the ::after overlay; we add
+    // extra bottom padding equal to the fade height so the item clears it.
+    if (lastRow) {
+      const scrollEl = list.closest('.viewport-scroll-list, .today-backlog-scroll');
+      if (scrollEl) {
+        // Scroll to bottom — new item is always last
+        scrollEl.scrollTop = scrollEl.scrollHeight;
+        // Nudge up enough to clear the 56px fade overlay
+        scrollEl.scrollTop -= 56;
+      }
+    }
     if (nameEl) startEditName(nameEl, last, () => {});
   }
 }
