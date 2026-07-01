@@ -72,7 +72,7 @@ body {
 }
 
 .header h1 {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 500;
   margin: 0;
   line-height: 1.35;
@@ -201,7 +201,7 @@ body {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 4px 0;
+  padding: 3px 0;
   cursor: pointer;
   user-select: none;
   position: relative;
@@ -229,7 +229,7 @@ body {
 }
 
 .task-name {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 500;
   flex: 0 1 auto;
   min-width: 0;
@@ -306,13 +306,37 @@ body {
   flex-shrink: 0;
 }
 
+/* Wrapper around the scroll list — needed to position the fade overlay */
+.scroll-list-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .today-backlog-scroll,
 .viewport-scroll-list {
-  flex: 1 1 auto;
+  height: 100%;
   overflow-y: auto;
-  min-height: 0;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Fade overlay — sits on top of the scroll container, fades from
+   transparent at the top to the card's background colour at the bottom */
+.scroll-list-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  pointer-events: none;
+  border-radius: 0 0 4px 4px;
+}
+
+.card-backlog-today .scroll-list-wrap::after,
+.card-viewport-fit .scroll-list-wrap::after {
+  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
 }
 
 .card-backlog-today .bottom-row,
@@ -462,11 +486,8 @@ body {
   padding: 12px 0;
 }
 
-.section-label ~ .empty-state {
-  padding-top: 2px;
-}
-
-.today-backlog-scroll .empty-state {
+.section-label ~ .empty-state,
+.section-label ~ .scroll-list-wrap .empty-state {
   padding-top: 2px;
 }
 
@@ -648,9 +669,11 @@ body {
 
       <div class="card card-backlog card-backlog-today">
         <div class="section-label">Back Log</div>
-        <div class="today-backlog-scroll">
-          <div id="todayBacklogList"></div>
-          <div class="empty-state" id="todayBacklogEmpty" hidden>Your back log is empty. Add a chore to get started.</div>
+        <div class="scroll-list-wrap">
+          <div class="today-backlog-scroll">
+            <div id="todayBacklogList"></div>
+            <div class="empty-state" id="todayBacklogEmpty" hidden>Your back log is empty. Add a chore to get started.</div>
+          </div>
         </div>
 
         <div class="bottom-row">
@@ -668,8 +691,10 @@ body {
   <div class="view" id="view-chores" hidden>
     <div class="card card-backlog card-viewport-fit">
       <div class="section-label">Back Log</div>
-      <div class="viewport-scroll-list" id="choresList"></div>
-      <div class="empty-state" id="choresEmpty" hidden>Your back log is empty. Tap + to add a chore.</div>
+      <div class="scroll-list-wrap">
+        <div class="viewport-scroll-list" id="choresList"></div>
+        <div class="empty-state" id="choresEmpty" hidden>Your back log is empty. Tap + to add a chore.</div>
+      </div>
 
       <div class="bottom-row">
         <a class="pill-btn" href="#today" data-nav="today">Today</a>
@@ -685,8 +710,10 @@ body {
   <div class="view" id="view-history" hidden>
     <div class="card card-backlog card-viewport-fit">
       <div class="section-label">History</div>
-      <div class="viewport-scroll-list" id="historyList"></div>
-      <div class="empty-state" id="historyEmpty" hidden>Nothing completed yet. Once you check off a chore, it'll show up here.</div>
+      <div class="scroll-list-wrap">
+        <div class="viewport-scroll-list" id="historyList"></div>
+        <div class="empty-state" id="historyEmpty" hidden>Nothing completed yet. Once you check off a chore, it'll show up here.</div>
+      </div>
 
       <div class="bottom-row">
         <a class="pill-btn" href="#today" data-nav="today">Today</a>
@@ -1279,7 +1306,7 @@ function attachSwipeAndDrag(wrap, row, item, { noDelete = false, listId = 'chore
     }
 
     if (mode === 'scroll') {
-      const scrollEl = wrap.closest('.viewport-scroll-list');
+      const scrollEl = wrap.closest('.viewport-scroll-list, .today-backlog-scroll');
       if (scrollEl) scrollEl.scrollTop -= deltaY;
     } else if (mode === 'swipe') {
       e.preventDefault();
