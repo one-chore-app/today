@@ -207,7 +207,7 @@ body {
 
 .task-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 11px;
   padding: 2px 0;
   cursor: pointer;
@@ -222,6 +222,7 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 20px;
+  margin-top: 1px;
 }
 
 .completed-row {
@@ -244,10 +245,26 @@ body {
 .task-name {
   font-size: 17px;
   font-weight: 500;
-  flex: 0 1 auto;
+}
+
+/* Wraps task name + category tag so the tag flows inline after the last word */
+.name-tag-wrap {
+  flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: inline;
+  line-height: 1.4;
+}
+
+.name-tag-wrap .task-name {
+  display: inline;
+}
+
+.name-tag-wrap .tag {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 6px;
+  position: relative;
+  top: -1px;
 }
 
 .task-name[contenteditable="true"] {
@@ -1099,9 +1116,8 @@ function buildTaskRow(item, kind) {
   tag.addEventListener('mousedown', (e) => e.preventDefault());
   tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, isCompleted, () => renderTodayView()); });
 
-  row.appendChild(check);
-  row.appendChild(name);
-  row.appendChild(tag);
+  const ntw = document.createElement("span"); ntw.className = "name-tag-wrap"; ntw.appendChild(name); ntw.appendChild(tag);
+  row.appendChild(check); row.appendChild(ntw);
   return row;
 }
 
@@ -1324,14 +1340,13 @@ function buildTodayBacklogRow(item) {
     name.addEventListener('click', (e) => {
       e.stopPropagation();
       startEditName(name, item, () => renderTodayView());
-      openCategoryDropdown(tag, item, false, () => renderTodayView());
     });
     const tag = document.createElement('button');
     tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
     tag.textContent = item.category || 'Category';
     tag.addEventListener('mousedown', (e) => e.preventDefault());
     tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, false, () => renderTodayView()); });
-    row.appendChild(check); row.appendChild(name); row.appendChild(tag);
+    const ntw = document.createElement("span"); ntw.className = "name-tag-wrap"; ntw.appendChild(name); ntw.appendChild(tag); row.appendChild(check); row.appendChild(ntw);
     wrap.appendChild(row);
     attachSwipeAndDrag(wrap, row, item, { noDelete: true, listId: 'todayBacklogList' });
   }
@@ -1364,14 +1379,13 @@ function buildChoresRow(item) {
     name.addEventListener('click', (e) => {
       e.stopPropagation();
       startEditName(name, item, () => {});
-      openCategoryDropdown(tag, item, false, () => renderChoresView());
     });
     const tag = document.createElement('button');
     tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
     tag.textContent = item.category || 'Category';
     tag.addEventListener('mousedown', (e) => e.preventDefault());
     tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, false, () => renderChoresView()); });
-    row.appendChild(check); row.appendChild(name); row.appendChild(tag);
+    const ntw = document.createElement("span"); ntw.className = "name-tag-wrap"; ntw.appendChild(name); ntw.appendChild(tag); row.appendChild(check); row.appendChild(ntw);
     wrap.appendChild(deleteBg); wrap.appendChild(row);
     attachSwipeAndDrag(wrap, row, item, { noDelete: false, listId: 'choresList' });
   }
@@ -1393,7 +1407,7 @@ function buildRearrangeRowEl(item) {
   tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
   tag.textContent = item.category || 'Category';
   tag.style.cursor = 'default';
-  row.appendChild(handle); row.appendChild(name); row.appendChild(tag);
+  const ntw = document.createElement("span"); ntw.className = "name-tag-wrap"; ntw.appendChild(name); ntw.appendChild(tag); row.appendChild(handle); row.appendChild(ntw);
   return row;
 }
 
@@ -1601,8 +1615,7 @@ function buildHistoryRow(item) {
   tag.style.cursor = 'default';
 
   row.appendChild(restore);
-  row.appendChild(name);
-  row.appendChild(tag);
+  const ntw = document.createElement("span"); ntw.className = "name-tag-wrap"; ntw.appendChild(name); ntw.appendChild(tag); row.appendChild(ntw);
   return row;
 }
 
