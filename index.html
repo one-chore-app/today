@@ -1152,14 +1152,14 @@ async function toggleComplete(item, isCurrentlyCompleted) {
 
 /* ====================== INLINE EDIT NAME (shared) ====================== */
 function startEditName(nameEl, item, onSaved) {
+  const isNew = item.name === 'New Item';
   nameEl.contentEditable = 'true';
+  // For new items, clear the placeholder text so the field starts empty
+  if (isNew) nameEl.textContent = '';
   nameEl.focus();
   const range = document.createRange();
   range.selectNodeContents(nameEl);
-  // New items: place caret at the start so user types from position 0.
-  // Existing items: place at the end so edits append naturally.
-  const isNew = item.name === 'New Item';
-  range.collapse(isNew ? true : false);
+  range.collapse(false); // always go to end (empty for new, last char for existing)
   const sel = window.getSelection();
   sel.removeAllRanges();
   sel.addRange(range);
