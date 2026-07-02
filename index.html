@@ -1154,11 +1154,12 @@ async function toggleComplete(item, isCurrentlyCompleted) {
 function startEditName(nameEl, item, onSaved) {
   nameEl.contentEditable = 'true';
   nameEl.focus();
-  // Place the caret at the end rather than selecting all text —
-  // selecting all paints a highlighted selection box, which we don't want.
   const range = document.createRange();
   range.selectNodeContents(nameEl);
-  range.collapse(false);
+  // New items: place caret at the start so user types from position 0.
+  // Existing items: place at the end so edits append naturally.
+  const isNew = item.name === 'New Item';
+  range.collapse(isNew ? true : false);
   const sel = window.getSelection();
   sel.removeAllRanges();
   sel.addRange(range);
