@@ -414,7 +414,7 @@ body {
 .scroll-list-wrap::after {
   content: '';
   position: absolute;
-  bottom: 0;
+  bottom: -4px;
   left: 0;
   right: 0;
   height: 28px;
@@ -523,8 +523,8 @@ body {
   text-align: left;
   background: transparent;
   border: none;
-  padding: 8px 14px;
-  margin-bottom: 6px;
+  padding: 5px 14px;
+  margin-bottom: 2px;
   font-size: 14px;
   font-weight: 500;
   border-radius: 999px;
@@ -1434,17 +1434,17 @@ function renderChoresView() {
   const last = chores[chores.length - 1];
   if (last && last.name === 'New Item') {
     const lastRow = list.lastElementChild;
-    const nameEl = lastRow ? lastRow.querySelector('.task-name') : null;
     if (lastRow) {
       const scrollEl = list.closest('.viewport-scroll-list, .today-backlog-scroll');
       if (scrollEl) {
         const rowBottom = lastRow.getBoundingClientRect().bottom;
         const containerBottom = scrollEl.getBoundingClientRect().bottom;
-        const overlap = rowBottom - (containerBottom - 16); // scroll new item above bottom padding
+        const overlap = rowBottom - (containerBottom - 16);
         if (overlap > 0) scrollEl.scrollTop += overlap;
       }
     }
-    if (nameEl) startEditName(nameEl, last, () => {});
+    // Don't auto-focus — let the user see "New task" placeholder first,
+    // then tap the name field to start editing.
   }
 }
 
