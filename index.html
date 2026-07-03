@@ -390,37 +390,39 @@ body {
 }
 
 /* Top fade — ~one item height, only visible when scrolled */
+/* Top fade — only visible when scrolled, fades in from transparent so no hard edge */
 .scroll-list-wrap::before {
   content: '';
   position: absolute;
-  top: 0;
+  top: -1px; /* extend 1px above container to avoid hard pixel at top */
   left: 0;
   right: 0;
-  height: 30px;
+  height: 28px;
   pointer-events: none;
   z-index: 2;
   opacity: 0;
   transition: opacity 0.15s ease;
-  background: linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
+  background: linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,0.95) 80%, rgba(255,255,255,1) 100%);
 }
 
 .scroll-list-wrap.show-top-fade::before {
   opacity: 1;
 }
 
-/* Bottom fade — only visible when there is more content below to scroll to */
+/* Bottom fade — only visible when there is more content below to scroll to.
+   Kept short so it sits just below the last visible item. */
 .scroll-list-wrap::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 52px;
+  height: 28px;
   pointer-events: none;
   z-index: 2;
   opacity: 0;
   transition: opacity 0.15s ease;
-  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
+  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.95) 80%, rgba(255,255,255,1) 100%);
 }
 
 .scroll-list-wrap.show-bottom-fade::after {
@@ -1405,7 +1407,8 @@ function attachTopFade(scrollEl) {
   if (!wrap) return;
   const update = () => {
     const atTop = scrollEl.scrollTop <= 4;
-    const atBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 4;
+    // Hide bottom fade once there's less than one row-height (28px) of content below
+    const atBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 28;
     wrap.classList.toggle('show-top-fade', !atTop);
     wrap.classList.toggle('show-bottom-fade', !atBottom);
   };
@@ -1732,7 +1735,7 @@ function buildHistoryRow(item) {
 
   const restore = document.createElement('span');
   restore.className = 'restore-icon material-symbols-outlined';
-  restore.textContent = 'autorenew';
+  restore.textContent = 'repeat';
   restore.title = 'Add back to Back Log';
   restore.addEventListener('click', (e) => restoreItem(item, e.currentTarget));
 
@@ -1762,7 +1765,7 @@ async function restoreItem(item, iconEl) {
     chores.push({ id: 'local-' + Date.now(), name: item.name, category: item.category });
   }
   iconEl.textContent = 'check';
-  setTimeout(() => { iconEl.textContent = 'autorenew'; }, 1200);
+  setTimeout(() => { iconEl.textContent = 'repeat'; }, 1200);
 }
 
 /* ====================== START ====================== */
