@@ -93,7 +93,7 @@ body {
   height: 40px;
   border-radius: 50%;
   border: none;
-  outline: 1.5px solid var(--white);
+  border: 2px solid var(--white);
   color: var(--white);
   display: flex;
   align-items: center;
@@ -139,7 +139,7 @@ body {
   justify-content: space-between;
   align-items: center;
   font-size: 14px;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
   padding: 0 24px;
 }
 
@@ -187,7 +187,7 @@ body {
 .card-completed {
   background: var(--olive);
   color: var(--white);
-  margin-top: -2px;
+  margin-top: 0;
   z-index: 1;
   padding-top: 0;
   padding-bottom: 22px;
@@ -296,22 +296,35 @@ body {
 
 .tag.placeholder-tag {
   background: transparent;
-  border: 1.5px dashed var(--ink);
-  color: var(--ink);
-  opacity: 0.6;
+  border: 1.5px solid #aaa;
+  color: #aaa;
 }
 
-.completed-row .tag {
-  background: var(--yellow);
-  color: var(--ink);
+/* Black category callout on brand-new unsaved items */
+.tag.new-item-tag {
+  background: var(--ink);
+  color: var(--white);
+  border: none;
 }
+
+/* Blue underline on task name while editing or on a new (empty) item.
+   display:inline-block is needed so min-width works on an inline element. */
+.task-name.editing,
+.task-name[data-placeholder] {
+  display: inline-block;
+  vertical-align: bottom;
+  border-bottom: 2px solid var(--blue);
+  min-width: 4.5em; /* roughly the width of "New task" */
+  outline: none;
+}
+
 
 /* Plain back log card (no notch) */
 .card-backlog {
   background: var(--white);
   color: var(--ink);
   position: relative;
-  margin-top: -2px;
+  margin-top: 0;
   z-index: 2;
   padding-top: 0;
 }
@@ -373,7 +386,7 @@ body {
   overflow-y: auto;
   user-select: none;
   -webkit-user-select: none;
-  padding-bottom: 68px;
+  padding-bottom: 16px;
   box-sizing: border-box;
 }
 
@@ -396,6 +409,25 @@ body {
   opacity: 1;
 }
 
+/* Bottom fade — only visible when there is more content below to scroll to */
+.scroll-list-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
+}
+
+.scroll-list-wrap.show-bottom-fade::after {
+  opacity: 1;
+}
+
 .card-backlog-today .bottom-row,
 .card-viewport-fit .bottom-row {
   margin-top: auto;
@@ -406,22 +438,6 @@ body {
   flex-shrink: 0;
   position: relative;
 }
-
-/* Bottom fade — sits at the bottom of the card, just above the button row */
-.card-backlog-today .bottom-row::before,
-.card-viewport-fit .bottom-row::before {
-  content: '';
-  position: absolute;
-  top: -52px;
-  left: 0;
-  right: 0;
-  height: 52px;
-  pointer-events: none;
-  z-index: 2;
-  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
-}
-
-
 
 .more-link {
   font-size: 14px;
@@ -437,12 +453,12 @@ body {
 }
 
 .pill-btn {
-  border: none;
-  outline: 1.5px solid var(--ink);
+  border: 2px solid var(--ink);
+  outline: none;
   color: var(--ink);
   background: transparent;
   border-radius: 999px;
-  padding: 5px 20px;
+  padding: 4px 18px;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -450,6 +466,13 @@ body {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  box-sizing: border-box;
+}
+
+.pill-btn.active {
+  background: var(--ink);
+  color: var(--white);
+  border-color: var(--ink);
 }
 
 .fab-add {
@@ -474,7 +497,7 @@ body {
 }
 
 .restore-icon {
-  font-size: 20px;
+  font-size: 21px;
   color: var(--blue);
   cursor: pointer;
   flex-shrink: 0;
@@ -528,7 +551,7 @@ body {
 .tag-dropdown .new-cat-input input {
   flex: 1;
   border: none;
-  outline: 1.5px solid #ddd;
+  border: 2px solid #ddd;
   border-radius: 999px;
   padding: 8px 14px;
   font-size: 14px;
@@ -540,7 +563,7 @@ body {
   margin-bottom: 0;
   background: transparent;
   border: none;
-  outline: 1.5px solid var(--ink);
+  border: 2px solid var(--ink);
   color: var(--ink);
   border-radius: 999px;
   padding: 5px 20px;
@@ -685,7 +708,7 @@ body {
   text-align: center;
   background: transparent;
   border: none;
-  outline: 1.5px solid var(--white);
+  border: 2px solid var(--white);
   color: var(--white);
   border-radius: 999px;
   padding: 12px 20px;
@@ -777,7 +800,7 @@ body {
       </div>
 
       <div class="card card-backlog card-backlog-today">
-        <div class="section-label">Back Log</div>
+        <div class="section-label">To Do</div>
         <div class="scroll-list-wrap">
           <div class="today-backlog-scroll">
             <div id="todayBacklogList"></div>
@@ -786,7 +809,8 @@ body {
         </div>
 
         <div class="bottom-row">
-          <a class="pill-btn" href="#chores" data-nav="chores">All Chores</a>
+          <a class="pill-btn" href="#today" data-nav="today">Today</a>
+          <a class="pill-btn" href="#chores" data-nav="chores">Back Log</a>
           <a class="pill-btn" href="#history" data-nav="history">History</a>
           <button class="fab-add" id="addBtnToday" title="Add chore">
             <svg class="plus-icon" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -808,6 +832,7 @@ body {
 
       <div class="bottom-row">
         <a class="pill-btn" href="#today" data-nav="today">Today</a>
+        <a class="pill-btn" href="#chores" data-nav="chores">Back Log</a>
         <a class="pill-btn" href="#history" data-nav="history">History</a>
         <button class="fab-add" id="addBtnChores" title="Add chore">
           <svg class="plus-icon" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -828,14 +853,13 @@ body {
       <div class="bottom-row">
         <a class="pill-btn" href="#today" data-nav="today">Today</a>
         <a class="pill-btn" href="#chores" data-nav="chores">Back Log</a>
+        <a class="pill-btn" href="#history" data-nav="history">History</a>
         <button class="fab-add" id="addBtnHistory" title="Add chore">
           <svg class="plus-icon" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </button>
       </div>
     </div>
   </div>
-
-</div>
 
 <script>
 /* ====================== CONFIG ====================== */
@@ -928,11 +952,19 @@ function currentViewName() {
   return VIEWS.includes(hash) ? hash : 'today';
 }
 
+function updateNavButtons() {
+  const view = currentViewName();
+  document.querySelectorAll('.pill-btn[data-nav]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.nav === view);
+  });
+}
+
 function renderRoute() {
   const view = currentViewName();
   VIEWS.forEach(v => {
     document.getElementById('view-' + v).hidden = (v !== view);
   });
+  updateNavButtons();
 
   if (view === 'today') {
     renderDate();
@@ -1132,7 +1164,7 @@ function buildTaskRow(item, kind) {
 
   const name = document.createElement('span');
   name.className = 'task-name';
-  if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "Name this chore..."; } else { name.textContent = item.name; }
+  if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "New task"; } else { name.textContent = item.name; }
   name.addEventListener('click', (e) => {
     e.stopPropagation();
     if (isCompleted) return;
@@ -1142,10 +1174,12 @@ function buildTaskRow(item, kind) {
   const tag = document.createElement('button');
   tag.className = 'tag';
   tag.textContent = item.category || 'No category';
-  // Prevent the button from stealing focus away from an in-progress text
-  // edit — otherwise clicking the tag blurs (and ends) the name edit first.
-  tag.addEventListener('mousedown', (e) => e.preventDefault());
-  tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, isCompleted, () => renderTodayView()); });
+  if (!isCompleted) {
+    // Prevent the button from stealing focus away from an in-progress text edit
+    tag.addEventListener('mousedown', (e) => e.preventDefault());
+    tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, isCompleted, () => renderTodayView()); });
+  }
+  applyTagColor(tag, item.category);
 
   const ntw = document.createElement("span"); ntw.className = "name-tag-wrap"; ntw.appendChild(name); ntw.appendChild(tag);
   row.appendChild(check); row.appendChild(ntw);
@@ -1185,8 +1219,8 @@ async function toggleComplete(item, isCurrentlyCompleted) {
 function startEditName(nameEl, item, onSaved) {
   const isNew = item.name === 'New Item';
   nameEl.contentEditable = 'true';
+  nameEl.classList.add('editing');
   // Remove placeholder attr while editing so it doesn't show behind typed text.
-  // The empty textContent was already set by the row builder for new items.
   delete nameEl.dataset.placeholder;
   nameEl.focus();
   const range = document.createRange();
@@ -1195,14 +1229,26 @@ function startEditName(nameEl, item, onSaved) {
   const sel = window.getSelection();
   sel.removeAllRanges();
   sel.addRange(range);
+
+  // Scroll element above the keyboard — wait for keyboard to animate in, then adjust
+  setTimeout(() => {
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const rect = nameEl.getBoundingClientRect();
+    if (rect.bottom > vh - 24) {
+      const scrollEl = nameEl.closest('.viewport-scroll-list, .today-backlog-scroll');
+      if (scrollEl) scrollEl.scrollTop += (rect.bottom - vh + 60);
+    }
+  }, 350);
+
   const finish = async () => {
     nameEl.contentEditable = 'false';
+    nameEl.classList.remove('editing');
     const newName = nameEl.textContent.trim();
     nameEl.removeEventListener('blur', finish);
     nameEl.removeEventListener('keydown', onKey);
     if (!newName) {
       // Nothing typed — restore placeholder display for new items
-      if (isNew) { nameEl.textContent = ''; nameEl.dataset.placeholder = 'Name this chore...'; }
+      if (isNew) { nameEl.textContent = ''; nameEl.dataset.placeholder = 'New task'; }
       else { nameEl.textContent = item.name; }
       return;
     }
@@ -1216,7 +1262,7 @@ function startEditName(nameEl, item, onSaved) {
   };
   function onKey(e) {
     if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }
-    if (e.key === 'Escape') { nameEl.textContent = item.name; nameEl.blur(); }
+    if (e.key === 'Escape') { nameEl.textContent = isNew ? '' : item.name; if (isNew) nameEl.dataset.placeholder = 'New task'; nameEl.blur(); }
   }
   nameEl.addEventListener('blur', finish);
   nameEl.addEventListener('keydown', onKey);
@@ -1352,18 +1398,18 @@ function fitCardToViewport(cardSelector) {
 }
 
 /* Attach a scroll listener to a scroll container that fades in the top
-   gradient once the user has scrolled down even a little. */
+   gradient once the user has scrolled down, and the bottom gradient when
+   there is more content below to scroll to. */
 function attachTopFade(scrollEl) {
   if (!scrollEl || scrollEl._topFadeAttached) return;
   scrollEl._topFadeAttached = true;
   const wrap = scrollEl.closest('.scroll-list-wrap');
   if (!wrap) return;
   const update = () => {
-    // Use a CSS custom property so the ::before pseudo-element picks it up
-    wrap.style.setProperty('--top-fade-opacity', scrollEl.scrollTop > 4 ? '1' : '0');
-    // Apply directly via a helper class since pseudo-elements can't be
-    // targeted with inline style — we toggle a class instead
-    wrap.classList.toggle('show-top-fade', scrollEl.scrollTop > 4);
+    const atTop = scrollEl.scrollTop <= 4;
+    const atBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 4;
+    wrap.classList.toggle('show-top-fade', !atTop);
+    wrap.classList.toggle('show-bottom-fade', !atBottom);
   };
   scrollEl.addEventListener('scroll', update, { passive: true });
   update();
@@ -1388,7 +1434,7 @@ function renderChoresView() {
       if (scrollEl) {
         const rowBottom = lastRow.getBoundingClientRect().bottom;
         const containerBottom = scrollEl.getBoundingClientRect().bottom;
-        const overlap = rowBottom - (containerBottom - 52 - 8); // 8px buffer above fade
+        const overlap = rowBottom - (containerBottom - 16); // scroll new item above bottom padding
         if (overlap > 0) scrollEl.scrollTop += overlap;
       }
     }
@@ -1415,13 +1461,13 @@ function buildTodayBacklogRow(item) {
     check.addEventListener('click', (e) => { e.stopPropagation(); toggleComplete(item, false); });
     const name = document.createElement('span');
     name.className = 'task-name';
-    if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "Name this chore..."; } else { name.textContent = item.name; }
+    if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "New task"; } else { name.textContent = item.name; }
     name.addEventListener('click', (e) => {
       e.stopPropagation();
       startEditName(name, item, () => renderTodayView());
     });
     const tag = document.createElement('button');
-    tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
+    tag.className = 'tag' + (item.name === 'New Item' && !item.category ? ' new-item-tag' : !item.category ? ' placeholder-tag' : '');
     tag.textContent = item.category || 'Category';
     applyTagColor(tag, item.category);
     tag.addEventListener('mousedown', (e) => e.preventDefault());
@@ -1455,13 +1501,13 @@ function buildChoresRow(item) {
     check.addEventListener('click', (e) => e.stopPropagation());
     const name = document.createElement('span');
     name.className = 'task-name';
-    if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "Name this chore..."; } else { name.textContent = item.name; }
+    if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "New task"; } else { name.textContent = item.name; }
     name.addEventListener('click', (e) => {
       e.stopPropagation();
       startEditName(name, item, () => {});
     });
     const tag = document.createElement('button');
-    tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
+    tag.className = 'tag' + (item.name === 'New Item' && !item.category ? ' new-item-tag' : !item.category ? ' placeholder-tag' : '');
     tag.textContent = item.category || 'Category';
     applyTagColor(tag, item.category);
     tag.addEventListener('mousedown', (e) => e.preventDefault());
@@ -1483,9 +1529,9 @@ function buildRearrangeRowEl(item) {
   handle.textContent = 'drag_handle';
   const name = document.createElement('span');
   name.className = 'task-name';
-  if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "Name this chore..."; } else { name.textContent = item.name; }
+  if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "New task"; } else { name.textContent = item.name; }
   const tag = document.createElement('span');
-  tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
+  tag.className = 'tag' + (item.name === 'New Item' && !item.category ? ' new-item-tag' : !item.category ? ' placeholder-tag' : '');
   tag.textContent = item.category || 'Category';
   tag.style.cursor = 'default';
   applyTagColor(tag, item.category);
@@ -1689,7 +1735,7 @@ function buildHistoryRow(item) {
 
   const name = document.createElement('span');
   name.className = 'task-name';
-  if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "Name this chore..."; } else { name.textContent = item.name; }
+  if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "New task"; } else { name.textContent = item.name; }
 
   const tag = document.createElement('span');
   tag.className = 'tag';
