@@ -253,7 +253,6 @@ body {
   content: attr(data-placeholder);
   color: #aaa;
   pointer-events: none;
-  font-style: italic;
 }
 
 /* Wraps task name + category tag so the tag flows inline after the last word */
@@ -300,11 +299,11 @@ body {
   color: #aaa;
 }
 
-/* Black category callout on brand-new unsaved items */
+/* New item category: white background, grey outline and text */
 .tag.new-item-tag {
-  background: var(--ink);
-  color: var(--white);
-  border: none;
+  background: var(--white);
+  color: #aaa;
+  border: 1.5px solid #aaa;
 }
 
 /* Blue underline on task name while editing or on a new (empty) item.
@@ -313,8 +312,8 @@ body {
 .task-name[data-placeholder] {
   display: inline-block;
   vertical-align: bottom;
-  border-bottom: 2px solid var(--blue);
-  min-width: 4.5em; /* roughly the width of "New task" */
+  border-bottom: 1.5px dotted #6FA1FF;
+  min-width: 4.5em;
   outline: none;
 }
 
@@ -1401,8 +1400,7 @@ function fitCardToViewport(cardSelector) {
    gradient once the user has scrolled down, and the bottom gradient when
    there is more content below to scroll to. */
 function attachTopFade(scrollEl) {
-  if (!scrollEl || scrollEl._topFadeAttached) return;
-  scrollEl._topFadeAttached = true;
+  if (!scrollEl) return;
   const wrap = scrollEl.closest('.scroll-list-wrap');
   if (!wrap) return;
   const update = () => {
@@ -1411,7 +1409,12 @@ function attachTopFade(scrollEl) {
     wrap.classList.toggle('show-top-fade', !atTop);
     wrap.classList.toggle('show-bottom-fade', !atBottom);
   };
-  scrollEl.addEventListener('scroll', update, { passive: true });
+  // Only attach the scroll listener once, but always call update()
+  // so re-renders recompute the fade state with the new content.
+  if (!scrollEl._topFadeAttached) {
+    scrollEl._topFadeAttached = true;
+    scrollEl.addEventListener('scroll', update, { passive: true });
+  }
   update();
 }
 
