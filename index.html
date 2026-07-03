@@ -231,7 +231,7 @@ body {
 }
 
 .completed-row .check-circle {
-  color: var(--yellow);
+  color: var(--lavender);
 }
 
 .backlog-row .check-circle {
@@ -245,6 +245,15 @@ body {
 .task-name {
   font-size: 17px;
   font-weight: 500;
+}
+
+/* Placeholder for new items — shows when the field is empty, disappears on typing.
+   Using ::before keeps the element's layout stable so the category tag never shifts. */
+.task-name[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #aaa;
+  pointer-events: none;
+  font-style: italic;
 }
 
 /* Wraps task name + category tag so the tag flows inline after the last word */
@@ -297,11 +306,6 @@ body {
   color: var(--ink);
 }
 
-.backlog-row .tag, .history-row .tag {
-  background: var(--lavender);
-  color: var(--ink);
-}
-
 /* Plain back log card (no notch) */
 .card-backlog {
   background: var(--white);
@@ -315,6 +319,15 @@ body {
 .history-row {
   padding-left: 24px;
   padding-right: 24px;
+}
+
+/* "+ N more tasks" callout under the 3rd completed item */
+.completed-more {
+  padding: 4px 24px 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lavender);
+  opacity: 0.9;
 }
 
 .backlog-row .task-name, .history-row .task-name {
@@ -440,10 +453,10 @@ body {
 }
 
 .fab-add {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: var(--yellow);
+  background: var(--lavender);
   color: var(--ink);
   border: none;
   display: flex;
@@ -465,7 +478,7 @@ body {
   color: var(--blue);
   cursor: pointer;
   flex-shrink: 0;
-  margin-right: 4px;
+  margin-top: 1px;
 }
 
 /* Category dropdown */
@@ -891,6 +904,15 @@ async function loadAllData() {
   if (completionsRes.error) console.error('loadCompletions error', JSON.stringify(completionsRes.error));
   chores = choresRes.data || [];
   allCompletions = completionsRes.data || [];
+  // Pre-assign colors to all known categories in the order they appear,
+  // so colors are stable across re-renders and sessions.
+  const seenCats = [];
+  [...chores, ...allCompletions].forEach(item => {
+    if (item.category && !seenCats.includes(item.category)) {
+      seenCats.push(item.category);
+    }
+  });
+  seenCats.forEach(cat => getCategoryColor(cat));
 }
 
 /* ====================== ROUTER ====================== */
@@ -993,33 +1015,35 @@ function renderTodayView() {
     'Future you says thanks 🤝',
   ];
 
-  // Pick a random closer, but never repeat the last one shown
-  function pickRandom(list, avoidKey) {
-    const stored = sessionStorage.getItem(avoidKey);
-    const pool = list.filter(s => s !== stored);
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    sessionStorage.setItem(avoidKey, pick);
-    return pick;
-  }
-
   // Wrap the closer in a nowrap span so the last word and emoji always
   // stay on the same line — prevents a lone emoji dangling as a widow.
   function nowrap(str) {
-    // Find the last space and wrap everything after it with the preceding word
     const lastSpace = str.lastIndexOf(' ', str.lastIndexOf(' ') - 1);
     if (lastSpace === -1) return `<span style="white-space:nowrap">${str}</span>`;
     return str.slice(0, lastSpace) + `&nbsp;<span style="white-space:nowrap">${str.slice(lastSpace + 1)}</span>`;
   }
 
+  // Messages persist per {date, count} so they only change once per day per action.
+  function getDailyMsg(list, count) {
+    const key = `ones_msg_${todayStr()}_${count}`;
+    let stored = localStorage.getItem(key);
+    if (!stored || !list.includes(stored)) {
+      const avoid = localStorage.getItem(`ones_msg_avoid_${count}`);
+      const pool = list.filter(s => s !== avoid);
+      stored = pool[Math.floor(Math.random() * pool.length)];
+      localStorage.setItem(key, stored);
+      localStorage.setItem(`ones_msg_avoid_${count}`, stored);
+    }
+    return stored;
+  }
+
   let progressMsg;
   if (count === 0) {
-    const closer = pickRandom(ZERO_CLOSERS, 'ones_last_zero');
-    progressMsg = `You haven't completed any tasks yet today. ${nowrap(closer)}`;
+    progressMsg = `You haven't completed any tasks yet today. ${nowrap(getDailyMsg(ZERO_CLOSERS, 0))}`;
   } else if (count === 1) {
     progressMsg = `You've completed 1 task today! ${nowrap("You're doing great 👍")}`;
   } else {
-    const closer = pickRandom(MULTI_CLOSERS, 'ones_last_multi');
-    progressMsg = `You've completed ${count} tasks today! ${nowrap(closer)}`;
+    progressMsg = `You've completed ${count} tasks today! ${nowrap(getDailyMsg(MULTI_CLOSERS, count))}`;
   }
   document.getElementById('progressText').innerHTML = progressMsg;
 
@@ -1032,7 +1056,14 @@ function renderTodayView() {
   } else {
     cCard.hidden = false;
     cEmpty.hidden = true;
-    tc.forEach(item => cList.appendChild(buildTaskRow(item, 'completed')));
+    const MAX_VISIBLE = 3;
+    tc.slice(0, MAX_VISIBLE).forEach(item => cList.appendChild(buildTaskRow(item, 'completed')));
+    if (tc.length > MAX_VISIBLE) {
+      const more = document.createElement('div');
+      more.className = 'completed-more';
+      more.textContent = `+ ${tc.length - MAX_VISIBLE} more task${tc.length - MAX_VISIBLE > 1 ? 's' : ''}`;
+      cList.appendChild(more);
+    }
   }
 
   fitTodayBacklogToViewport();
@@ -1101,7 +1132,7 @@ function buildTaskRow(item, kind) {
 
   const name = document.createElement('span');
   name.className = 'task-name';
-  name.textContent = item.name;
+  if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "Name this chore..."; } else { name.textContent = item.name; }
   name.addEventListener('click', (e) => {
     e.stopPropagation();
     if (isCompleted) return;
@@ -1154,12 +1185,13 @@ async function toggleComplete(item, isCurrentlyCompleted) {
 function startEditName(nameEl, item, onSaved) {
   const isNew = item.name === 'New Item';
   nameEl.contentEditable = 'true';
-  // For new items, clear the placeholder text so the field starts empty
-  if (isNew) nameEl.textContent = '';
+  // Remove placeholder attr while editing so it doesn't show behind typed text.
+  // The empty textContent was already set by the row builder for new items.
+  delete nameEl.dataset.placeholder;
   nameEl.focus();
   const range = document.createRange();
   range.selectNodeContents(nameEl);
-  range.collapse(false); // always go to end (empty for new, last char for existing)
+  range.collapse(false);
   const sel = window.getSelection();
   sel.removeAllRanges();
   sel.addRange(range);
@@ -1168,7 +1200,12 @@ function startEditName(nameEl, item, onSaved) {
     const newName = nameEl.textContent.trim();
     nameEl.removeEventListener('blur', finish);
     nameEl.removeEventListener('keydown', onKey);
-    if (!newName) { nameEl.textContent = item.name; return; }
+    if (!newName) {
+      // Nothing typed — restore placeholder display for new items
+      if (isNew) { nameEl.textContent = ''; nameEl.dataset.placeholder = 'Name this chore...'; }
+      else { nameEl.textContent = item.name; }
+      return;
+    }
     if (newName === item.name) return;
     item.name = newName;
     if (db) {
@@ -1186,6 +1223,46 @@ function startEditName(nameEl, item, onSaved) {
 }
 
 /* ====================== CATEGORY DROPDOWN (shared) ====================== */
+// Category color palette — cycles in order, restarting when exhausted.
+// Each entry: [background, text] derived from the design screenshot.
+const CATEGORY_COLORS = [
+  ['#5F181A', '#CCD6FF'],  // dark maroon  / lavender
+  ['#FC4C01', '#FFF7A6'],  // orange       / pale yellow
+  ['#CCD6FF', '#5F181A'],  // lavender     / dark maroon
+  ['#3D2EFF', '#CCD6FF'],  // blue         / lavender
+  ['#D8B81D', '#3D2EFF'],  // gold         / blue
+  ['#FFF7A6', '#FC4C01'],  // pale yellow  / orange
+  ['#FF9CE7', '#5F181A'],  // pink         / dark maroon
+  ['#333C00', '#CCD6FF'],  // dark olive   / lavender
+  ['#C47B00', '#FFF7A6'],  // amber        / pale yellow
+  ['#EFD4FF', '#5F181A'],  // pale purple  / dark maroon
+];
+
+// Stable category → color index map (persists across re-renders in the session)
+const categoryColorMap = {};
+
+function getCategoryColor(categoryName) {
+  if (!categoryName) return null;
+  if (!(categoryName in categoryColorMap)) {
+    // Assign the next available color slot
+    const usedIndices = new Set(Object.values(categoryColorMap));
+    let idx = 0;
+    while (usedIndices.has(idx % CATEGORY_COLORS.length) && usedIndices.size < CATEGORY_COLORS.length) {
+      idx++;
+    }
+    categoryColorMap[categoryName] = Object.keys(categoryColorMap).length % CATEGORY_COLORS.length;
+  }
+  return CATEGORY_COLORS[categoryColorMap[categoryName] % CATEGORY_COLORS.length];
+}
+
+function applyTagColor(tagEl, categoryName) {
+  const colors = getCategoryColor(categoryName);
+  if (colors) {
+    tagEl.style.background = colors[0];
+    tagEl.style.color = colors[1];
+  }
+}
+
 function getAllCategoryNames() {
   const set = new Set();
   chores.forEach(c => c.category && set.add(c.category));
@@ -1251,6 +1328,7 @@ async function setCategory(item, newCategory, isCompleted, tagEl) {
   if (tagEl) {
     tagEl.textContent = newCategory || (tagEl.classList.contains('placeholder-tag') ? 'Category' : 'No category');
     tagEl.classList.remove('placeholder-tag');
+    applyTagColor(tagEl, newCategory);
   }
 }
 
@@ -1337,7 +1415,7 @@ function buildTodayBacklogRow(item) {
     check.addEventListener('click', (e) => { e.stopPropagation(); toggleComplete(item, false); });
     const name = document.createElement('span');
     name.className = 'task-name';
-    name.textContent = item.name;
+    if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "Name this chore..."; } else { name.textContent = item.name; }
     name.addEventListener('click', (e) => {
       e.stopPropagation();
       startEditName(name, item, () => renderTodayView());
@@ -1345,6 +1423,7 @@ function buildTodayBacklogRow(item) {
     const tag = document.createElement('button');
     tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
     tag.textContent = item.category || 'Category';
+    applyTagColor(tag, item.category);
     tag.addEventListener('mousedown', (e) => e.preventDefault());
     tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, false, () => renderTodayView()); });
     const ntw = document.createElement("span"); ntw.className = "name-tag-wrap"; ntw.appendChild(name); ntw.appendChild(tag); row.appendChild(check); row.appendChild(ntw);
@@ -1376,7 +1455,7 @@ function buildChoresRow(item) {
     check.addEventListener('click', (e) => e.stopPropagation());
     const name = document.createElement('span');
     name.className = 'task-name';
-    name.textContent = item.name;
+    if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "Name this chore..."; } else { name.textContent = item.name; }
     name.addEventListener('click', (e) => {
       e.stopPropagation();
       startEditName(name, item, () => {});
@@ -1384,6 +1463,7 @@ function buildChoresRow(item) {
     const tag = document.createElement('button');
     tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
     tag.textContent = item.category || 'Category';
+    applyTagColor(tag, item.category);
     tag.addEventListener('mousedown', (e) => e.preventDefault());
     tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, false, () => renderChoresView()); });
     const ntw = document.createElement("span"); ntw.className = "name-tag-wrap"; ntw.appendChild(name); ntw.appendChild(tag); row.appendChild(check); row.appendChild(ntw);
@@ -1403,11 +1483,12 @@ function buildRearrangeRowEl(item) {
   handle.textContent = 'drag_handle';
   const name = document.createElement('span');
   name.className = 'task-name';
-  name.textContent = item.name;
+  if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "Name this chore..."; } else { name.textContent = item.name; }
   const tag = document.createElement('span');
   tag.className = 'tag' + (!item.category ? ' placeholder-tag' : '');
   tag.textContent = item.category || 'Category';
   tag.style.cursor = 'default';
+  applyTagColor(tag, item.category);
   const ntw = document.createElement("span"); ntw.className = "name-tag-wrap"; ntw.appendChild(name); ntw.appendChild(tag); row.appendChild(handle); row.appendChild(ntw);
   return row;
 }
@@ -1608,12 +1689,13 @@ function buildHistoryRow(item) {
 
   const name = document.createElement('span');
   name.className = 'task-name';
-  name.textContent = item.name;
+  if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "Name this chore..."; } else { name.textContent = item.name; }
 
   const tag = document.createElement('span');
   tag.className = 'tag';
   tag.textContent = item.category || 'No category';
   tag.style.cursor = 'default';
+  applyTagColor(tag, item.category);
 
   row.appendChild(restore);
   const ntw = document.createElement("span"); ntw.className = "name-tag-wrap"; ntw.appendChild(name); ntw.appendChild(tag); row.appendChild(ntw);
