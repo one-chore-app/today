@@ -394,10 +394,10 @@ body {
 .scroll-list-wrap::before {
   content: '';
   position: absolute;
-  top: -1px; /* extend 1px above container to avoid hard pixel at top */
+  top: -1px;
   left: 0;
   right: 0;
-  height: 28px;
+  height: 80px;
   pointer-events: none;
   z-index: 2;
   opacity: 0;
@@ -414,10 +414,10 @@ body {
 .scroll-list-wrap::after {
   content: '';
   position: absolute;
-  bottom: -10px;
+  bottom: -1px;
   left: 0;
   right: 0;
-  height: 28px;
+  height: 80px;
   pointer-events: none;
   z-index: 2;
   opacity: 0;
@@ -432,7 +432,7 @@ body {
 .card-backlog-today .bottom-row,
 .card-viewport-fit .bottom-row {
   margin-top: auto;
-  padding-top: 16px;
+  padding-top: 0;
   padding-left: 24px;
   padding-right: 24px;
   padding-bottom: max(env(safe-area-inset-bottom), 20px);
@@ -757,7 +757,6 @@ body {
   <div class="login-shell">
 
     <div class="header">
-      <h1>Hi 👋 <strong>Shelby</strong>!<br>Welcome back.</h1>
       <div class="logo-circle">1</div>
     </div>
 
@@ -774,7 +773,7 @@ body {
 <div class="app" id="mainApp" hidden>
 
   <div class="header">
-    <h1><a href="#today" data-nav="today">Hi 👋 <strong id="userName">Shelby</strong>!<br>Welcome back.</a></h1>
+    <h1><a href="#today" data-nav="today"><span id="userGreeting">Hi 👋 </span><strong id="userName">Shelby</strong>!<br>Welcome back.</a></h1>
     <a class="logo-circle" href="#today" data-nav="today">1</a>
   </div>
 
@@ -866,8 +865,11 @@ body {
 /* ====================== CONFIG ====================== */
 const SUPABASE_URL = "https://fjrbdbmxvwnusrqvfsms.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqcmJkYm14dndudXNycXZmc21zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4Mzg1ODAsImV4cCI6MjA5ODQxNDU4MH0.vQxfQSC4w-Ew87edFRD8i-eXYzspkzN5IoFp-Jfh9Vs";
-const APP_PASSWORD = "shelby"; // <-- update this to set your password
-const USER_NAME = "Shelby";
+const USERS = {
+  'shelby': { name: 'Shelby', emoji: '👋' },
+  'haley':  { name: 'Haley',  emoji: '👋' },
+};
+let currentUser = null; // set on login
 
 function todayStr() {
   const d = new Date();
@@ -879,20 +881,28 @@ function todayStr() {
 
 /* ====================== AUTH ====================== */
 function checkAuth() {
-  if (localStorage.getItem('ones_unlocked') === 'true') showApp();
+  const saved = localStorage.getItem('ones_user');
+  if (saved && USERS[saved]) { currentUser = saved; showApp(); }
   else document.getElementById('loginScreen').hidden = false;
 }
 document.getElementById('loginBtn').addEventListener('click', attemptLogin);
 document.getElementById('passwordInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptLogin(); });
 function attemptLogin() {
-  const val = document.getElementById('passwordInput').value;
-  if (val === APP_PASSWORD) { localStorage.setItem('ones_unlocked', 'true'); showApp(); }
-  else document.getElementById('loginError').textContent = 'Incorrect password.';
+  const val = document.getElementById('passwordInput').value.trim().toLowerCase();
+  if (USERS[val]) {
+    currentUser = val;
+    localStorage.setItem('ones_user', val);
+    showApp();
+  } else {
+    document.getElementById('loginError').textContent = 'Incorrect password.';
+  }
 }
 async function showApp() {
   document.getElementById('loginScreen').hidden = true;
   document.getElementById('mainApp').hidden = false;
-  document.getElementById('userName').textContent = USER_NAME;
+  const user = USERS[currentUser];
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('userGreeting').textContent = `Hi ${user.emoji} `;
   await loadAllData();
   initRouter();
 }
@@ -922,8 +932,8 @@ async function loadAllData() {
     return;
   }
   const [choresRes, completionsRes] = await Promise.all([
-    db.from('chores').select('*').order('sort_order', { ascending: true }),
-    db.from('completions').select('*').order('completed_date', { ascending: false }),
+    db.from('chores').select('*').eq('username', currentUser).order('sort_order', { ascending: true }),
+    db.from('completions').select('*').eq('username', currentUser).order('completed_date', { ascending: false }),
   ]);
   if (choresRes.error) console.error('loadChores error', JSON.stringify(choresRes.error));
   if (completionsRes.error) console.error('loadCompletions error', JSON.stringify(completionsRes.error));
@@ -1191,7 +1201,7 @@ async function toggleComplete(item, isCurrentlyCompleted) {
   if (!isCurrentlyCompleted) {
     const newCompletion = { id: 'local-' + Date.now(), chore_id: item.id, name: item.name, category: item.category, completed_date: todayStr() };
     if (db) {
-      const { data, error } = await db.from('completions').insert([{ chore_id: item.id, name: item.name, category: item.category, completed_date: todayStr() }]).select();
+      const { data, error } = await db.from('completions').insert([{ chore_id: item.id, name: item.name, category: item.category, completed_date: todayStr(), username: currentUser }]).select();
       if (error) { console.error('insert completion error', JSON.stringify(error)); return; }
       const { error: delErr } = await db.from('chores').delete().eq('id', item.id);
       if (delErr) { console.error('delete chore error', JSON.stringify(delErr)); return; }
@@ -1203,7 +1213,7 @@ async function toggleComplete(item, isCurrentlyCompleted) {
   } else {
     const newChore = { id: 'local-' + Date.now(), name: item.name, category: item.category };
     if (db) {
-      const { data, error } = await db.from('chores').insert([{ name: item.name, category: item.category }]).select();
+      const { data, error } = await db.from('chores').insert([{ name: item.name, category: item.category, username: currentUser }]).select();
       if (error) { console.error('insert chore error', JSON.stringify(error)); return; }
       const { error: delErr } = await db.from('completions').delete().eq('id', item.id);
       if (delErr) { console.error('delete completion error', JSON.stringify(delErr)); return; }
@@ -1383,7 +1393,7 @@ async function setCategory(item, newCategory, isCompleted, tagEl) {
 async function addNewChore() {
   if (db) {
     const maxOrder = chores.reduce((m, c) => Math.max(m, c.sort_order || 0), 0);
-    const { data, error } = await db.from('chores').insert([{ name: 'New Item', category: '', sort_order: maxOrder + 1 }]).select();
+    const { data, error } = await db.from('chores').insert([{ name: 'New Item', category: '', sort_order: maxOrder + 1, username: currentUser }]).select();
     if (!error && data) { chores.push(data[0]); return; }
     console.error('addNewChore error', error);
   }
@@ -1758,7 +1768,7 @@ async function restoreItem(item, iconEl) {
   // Re-adds the chore to the active Back Log as-is. History stays intact —
   // it's a permanent log, not an undo.
   if (db) {
-    const { data, error } = await db.from('chores').insert([{ name: item.name, category: item.category }]).select();
+    const { data, error } = await db.from('chores').insert([{ name: item.name, category: item.category, username: currentUser }]).select();
     if (error) { console.error('restore error', error); return; }
     chores.push(data[0]);
   } else {
