@@ -1521,7 +1521,7 @@ function buildChoresRow(item) {
     const check = document.createElement('div');
     check.className = 'check-circle material-symbols-outlined';
     check.textContent = 'radio_button_unchecked';
-    check.addEventListener('click', (e) => e.stopPropagation());
+    check.addEventListener('click', (e) => { e.stopPropagation(); toggleComplete(item, false); });
     const name = document.createElement('span');
     name.className = 'task-name';
     if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "New task"; } else { name.textContent = item.name; }
@@ -1662,7 +1662,7 @@ function attachSwipeAndDrag(wrap, row, item, { noDelete = false, listId = 'chore
   const INTENT_THRESHOLD = 8;
 
   function onPointerDown(e) {
-    if (e.target.closest('.tag') || e.target.isContentEditable) return;
+    if (e.target.closest('.tag') || e.target.closest('.task-name') || e.target.isContentEditable) return;
     startX = e.clientX; startY = e.clientY; lastPointerY = e.clientY;
     currentX = 0; mode = null; activePointerId = e.pointerId;
     row.setPointerCapture(e.pointerId);
