@@ -582,12 +582,12 @@ body {
 .empty-state {
   font-size: 14px;
   color: #8a8a96;
-  padding: 12px 0;
+  padding: 12px 24px;
 }
 
 .section-label ~ .empty-state,
 .section-label ~ .scroll-list-wrap .empty-state {
-  padding-top: 2px;
+  padding-top: 4px; /* section-label has 6px bottom padding, so 4px here = 10px total gap */
 }
 
 .card-backlog .empty-state {
@@ -1359,8 +1359,11 @@ function openCategoryDropdown(tagEl, item, isCompleted, onSaved) {
   dropdown.appendChild(newCatWrap);
   document.body.appendChild(dropdown);
   const rect = tagEl.getBoundingClientRect();
+  const dropW = dropdown.getBoundingClientRect().width;
+  const leftIdeal = rect.left + window.scrollX;
+  const maxLeft = window.innerWidth - dropW - 8; // 8px margin from right edge
   dropdown.style.top = (rect.bottom + window.scrollY + 6) + 'px';
-  dropdown.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 180) + 'px';
+  dropdown.style.left = Math.min(Math.max(8, leftIdeal), maxLeft) + 'px';
   openDropdownEl = dropdown;
 
   // Only close when clicking genuinely outside the dropdown.
