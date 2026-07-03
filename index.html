@@ -1126,8 +1126,8 @@ function fitTodayBacklogToViewport() {
   const viewportHeight = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
   card.style.height = Math.max(viewportHeight - top, 80) + 'px';
 
-  if (chores.length === 0) { bEmpty.hidden = false; return; }
-  bEmpty.hidden = true;
+  if (chores.length === 0) { bEmpty.hidden = false; bList.style.display = 'none'; return; }
+  bEmpty.hidden = true; bList.style.display = '';
   chores.forEach(item => bList.appendChild(buildTodayBacklogRow(item)));
   attachTopFade(bList.closest('.today-backlog-scroll'));
 }
@@ -1439,8 +1439,8 @@ function renderChoresView() {
   const list = document.getElementById('choresList');
   const empty = document.getElementById('choresEmpty');
   list.innerHTML = '';
-  if (chores.length === 0) { empty.hidden = false; return; }
-  empty.hidden = true;
+  if (chores.length === 0) { empty.hidden = false; list.style.display = 'none'; return; }
+  empty.hidden = true; list.style.display = '';
   chores.forEach(item => list.appendChild(buildChoresRow(item)));
   attachTopFade(list.closest('.viewport-scroll-list'));
 
@@ -1471,6 +1471,9 @@ function buildTodayBacklogRow(item) {
     wrap.appendChild(row);
     attachRearrangeDrag(wrap, row, item, 'todayBacklogList');
   } else {
+    const deleteBg = document.createElement('div');
+    deleteBg.className = 'delete-bg';
+    deleteBg.innerHTML = '<span class="material-symbols-outlined">delete</span>';
     const row = document.createElement('div');
     row.className = 'task-row backlog-row';
     row.style.background = 'var(--white)';
@@ -1492,8 +1495,9 @@ function buildTodayBacklogRow(item) {
     tag.addEventListener('mousedown', (e) => e.preventDefault());
     tag.addEventListener('click', (e) => { e.stopPropagation(); openCategoryDropdown(tag, item, false, () => renderTodayView()); });
     const ntw = document.createElement("span"); ntw.className = "name-tag-wrap"; ntw.appendChild(name); ntw.appendChild(tag); row.appendChild(check); row.appendChild(ntw);
+    wrap.appendChild(deleteBg);
     wrap.appendChild(row);
-    attachSwipeAndDrag(wrap, row, item, { noDelete: true, listId: 'todayBacklogList' });
+    attachSwipeAndDrag(wrap, row, item, { noDelete: false, listId: 'todayBacklogList' });
   }
   return wrap;
 }
@@ -1736,8 +1740,8 @@ function renderHistoryView() {
   const list = document.getElementById('historyList');
   const empty = document.getElementById('historyEmpty');
   list.innerHTML = '';
-  if (allCompletions.length === 0) { empty.hidden = false; return; }
-  empty.hidden = true;
+  if (allCompletions.length === 0) { empty.hidden = false; list.style.display = 'none'; return; }
+  empty.hidden = true; list.style.display = '';
   allCompletions.forEach(item => list.appendChild(buildHistoryRow(item)));
   attachTopFade(list.closest('.viewport-scroll-list'));
 }
