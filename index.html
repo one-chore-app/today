@@ -1136,6 +1136,9 @@ let resizeTimer = null;
 function onViewportChange() {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
+    // Don't re-render while a name is being edited — the keyboard appearing
+    // fires a visualViewport resize which would destroy the active edit.
+    if (document.querySelector('.task-name[contenteditable="true"]')) return;
     const view = currentViewName();
     if (view === 'today') fitTodayBacklogToViewport();
     else if (view === 'chores') fitCardToViewport('#view-chores .card-viewport-fit');
@@ -1223,7 +1226,11 @@ async function toggleComplete(item, isCurrentlyCompleted) {
     }
     allCompletions = allCompletions.filter(c => c.id !== item.id);
   }
-  renderTodayView();
+  // Re-render the current view. When completing from Back Log, stay on
+  // Back Log so the user sees the item disappear from the list.
+  const view = currentViewName();
+  if (view === 'chores') renderChoresView();
+  else renderTodayView();
 }
 
 /* ====================== INLINE EDIT NAME (shared) ====================== */
@@ -1521,7 +1528,14 @@ function buildChoresRow(item) {
     const check = document.createElement('div');
     check.className = 'check-circle material-symbols-outlined';
     check.textContent = 'radio_button_unchecked';
-    check.addEventListener('click', (e) => { e.stopPropagation(); toggleComplete(item, false); });
+    check.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      check.textContent = 'check_circle';
+      check.style.color = 'var(--lavender)';
+      row.style.opacity = '0.4';
+      row.style.pointerEvents = 'none';
+      await toggleComplete(item, false);
+    });
     const name = document.createElement('span');
     name.className = 'task-name';
     if (item.name === "New Item") { name.textContent = ""; name.dataset.placeholder = "New task"; } else { name.textContent = item.name; }
