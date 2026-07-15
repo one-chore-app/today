@@ -355,7 +355,7 @@ body {
 .bottom-row {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 9px;
   margin-top: 20px;
   padding: 0 24px;
@@ -420,10 +420,10 @@ body {
 .scroll-list-wrap::after {
   content: '';
   position: absolute;
-  bottom: -1px;
+  bottom: 0;
   left: 0;
   right: 0;
-  height: 80px;
+  height: 60px;
   pointer-events: none;
   z-index: 2;
   opacity: 0;
@@ -1130,7 +1130,7 @@ function fitTodayBacklogToViewport() {
   // Pin card height to viewport
   const top = card.getBoundingClientRect().top;
   const viewportHeight = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-  const sab = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sab')) || 0; card.style.height = Math.max(viewportHeight - top + sab, 80) + 'px';
+  card.style.height = Math.max(viewportHeight - top + 60, 80) + 'px';
 
   if (chores.length === 0) { bEmpty.hidden = false; bList.style.display = 'none'; return; }
   bEmpty.hidden = true; bList.style.display = '';
@@ -1427,7 +1427,7 @@ function fitCardToViewport(cardSelector) {
   if (!card) return;
   const top = card.getBoundingClientRect().top;
   const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-  const sab = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sab')) || 0; card.style.height = Math.max(viewportHeight - top + sab, 80) + 'px';
+  card.style.height = Math.max(viewportHeight - top + 60, 80) + 'px';
 }
 
 /* Attach a scroll listener to a scroll container that fades in the top
