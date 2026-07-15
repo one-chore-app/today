@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap">
 <style>
 :root {
+  --sab: env(safe-area-inset-bottom, 0px);
   --bg: #231f20;
   --white: #FFFFFF;
   --lavender: #CCD6FF;
@@ -354,7 +355,7 @@ body {
 .bottom-row {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 9px;
   margin-top: 20px;
   padding: 0 24px;
@@ -1129,7 +1130,7 @@ function fitTodayBacklogToViewport() {
   // Pin card height to viewport
   const top = card.getBoundingClientRect().top;
   const viewportHeight = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-  card.style.height = Math.max(viewportHeight - top, 80) + 'px';
+  const sab = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sab')) || 0; card.style.height = Math.max(viewportHeight - top + sab, 80) + 'px';
 
   if (chores.length === 0) { bEmpty.hidden = false; bList.style.display = 'none'; return; }
   bEmpty.hidden = true; bList.style.display = '';
@@ -1426,7 +1427,7 @@ function fitCardToViewport(cardSelector) {
   if (!card) return;
   const top = card.getBoundingClientRect().top;
   const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-  card.style.height = Math.max(viewportHeight - top, 80) + 'px';
+  const sab = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sab')) || 0; card.style.height = Math.max(viewportHeight - top + sab, 80) + 'px';
 }
 
 /* Attach a scroll listener to a scroll container that fades in the top
