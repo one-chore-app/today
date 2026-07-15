@@ -1135,8 +1135,14 @@ function fitTodayBacklogToViewport() {
 
   // Pin card height to viewport
   const top = card.getBoundingClientRect().top;
-  const viewportHeight = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-  card.style.height = Math.max(viewportHeight - top + 60, 80) + 'px';
+  // Pin to screen bottom with position:fixed - bypasses all iOS viewport height issues
+  card.style.position = 'fixed';
+  card.style.top = top + 'px';
+  card.style.bottom = '0';
+  card.style.left = card.parentElement.getBoundingClientRect().left + 'px';
+  card.style.right = '0';
+  card.style.height = '';
+  card.style.width = card.parentElement.getBoundingClientRect().width + 'px';
 
   if (chores.length === 0) { bEmpty.hidden = false; bList.style.display = 'none'; return; }
   bEmpty.hidden = true; bList.style.display = '';
@@ -1432,8 +1438,13 @@ function fitCardToViewport(cardSelector) {
   const card = document.querySelector(cardSelector);
   if (!card) return;
   const top = card.getBoundingClientRect().top;
-  const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-  card.style.height = Math.max(viewportHeight - top + 60, 80) + 'px';
+  card.style.position = 'fixed';
+  card.style.top = top + 'px';
+  card.style.bottom = '0';
+  card.style.left = card.parentElement.getBoundingClientRect().left + 'px';
+  card.style.right = '0';
+  card.style.height = '';
+  card.style.width = card.parentElement.getBoundingClientRect().width + 'px';
 }
 
 /* Attach a scroll listener to a scroll container that fades in the top
