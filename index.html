@@ -69,7 +69,7 @@ body {
   max-height: 100dvh;
   overflow-x: hidden;
   overflow-y: visible;
-  padding: 64px 0 0;
+  padding: max(64px, calc(env(safe-area-inset-top) + 20px)) 0 0;
   position: relative;
   display: flex;
   background: var(--bg);
@@ -914,14 +914,13 @@ function attemptLogin() {
 async function showApp() {
   document.getElementById('loginScreen').hidden = true;
   document.getElementById('mainApp').hidden = false;
-  // The layout viewport in iOS standalone is shorter than the physical screen
-  // (e.g. 793px vs 852px). Extend body to screen.height so its white background
-  // fills the gap area — body backgrounds paint within their box even in safe zones.
-  const gap = window.screen.height - window.innerHeight;
-  if (gap > 0) {
-    document.body.style.height = window.screen.height + 'px';
-    document.body.style.background = 'white';
-  }
+  // NOTE: we used to extend body.style.height to window.screen.height here to
+  // paper over a gap below the safe area in iOS standalone mode. That relied on
+  // window.screen.height (the physical device screen, which never reflects the
+  // real browser/PWA viewport) and fought with .app's own 100dvh sizing — which,
+  // combined with viewport-fit=cover on the <meta viewport> tag, already extends
+  // correctly behind the home indicator on its own. Removed so body/.app just
+  // trust dvh, matching how the rest of the layout (and Shelved) works.
   const user = USERS[currentUser];
   document.getElementById('userName').textContent = user.name;
   document.getElementById('userGreeting').textContent = `Hi ${user.emoji} `;
@@ -1143,16 +1142,17 @@ function fitTodayBacklogToViewport() {
   const card = document.querySelector('.card-backlog-today');
   bList.innerHTML = '';
 
-  // Pin card height to viewport
+  // Pin card height to viewport. viewportBottom() reads .app's actual rendered
+  // bottom edge (already correctly sized by CSS via 100dvh) instead of the
+  // physical screen dimensions, which don't track the real visible viewport.
   const top = card.getBoundingClientRect().top;
-  // Use window.innerHeight (full physical screen on iOS standalone) not visualViewport
   card.style.position = '';
   card.style.top = '';
   card.style.bottom = '';
   card.style.left = '';
   card.style.right = '';
   card.style.width = '';
-  card.style.height = Math.max(window.screen.height - top, 80) + 'px';
+  card.style.height = Math.max(viewportBottom() - top, 80) + 'px';
 
   if (chores.length === 0) { bEmpty.hidden = false; bList.style.display = 'none'; return; }
   bEmpty.hidden = true; bList.style.display = '';
@@ -1444,6 +1444,17 @@ async function addNewChore() {
   chores.push({ id: 'local-' + Date.now(), name: 'New Item', category: '' });
 }
 
+// The .app element is already sized correctly to the real, current viewport
+// via CSS (height:100dvh, with viewport-fit=cover accounting for safe areas).
+// That means its rendered bottom edge is the one trustworthy source for "how
+// much vertical space is actually available" — unlike window.screen.height,
+// which is the physical device screen and never reflects Safari's toolbar,
+// standalone mode, or anything else that changes the visible area.
+function viewportBottom() {
+  const app = document.querySelector('.app');
+  return app ? app.getBoundingClientRect().bottom : window.innerHeight;
+}
+
 function fitCardToViewport(cardSelector) {
   const card = document.querySelector(cardSelector);
   if (!card) return;
@@ -1454,7 +1465,7 @@ function fitCardToViewport(cardSelector) {
   card.style.left = '';
   card.style.right = '';
   card.style.width = '';
-  card.style.height = Math.max(window.screen.height - top, 80) + 'px';
+  card.style.height = Math.max(viewportBottom() - top, 80) + 'px';
 }
 
 /* Attach a scroll listener to a scroll container that fades in the top
