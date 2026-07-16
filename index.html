@@ -912,6 +912,21 @@ function attemptLogin() {
 async function showApp() {
   document.getElementById('loginScreen').hidden = true;
   document.getElementById('mainApp').hidden = false;
+  // On iOS standalone the viewport is shorter than the screen (e.g. 793px vs 852px).
+  // body clips at innerHeight so we can't extend a card past it.
+  // A position:fixed element escapes that clip and reaches the physical screen bottom.
+  const gap = Math.max(window.screen.height - window.innerHeight, 0);
+  if (gap > 0) {
+    let fill = document.getElementById('_ios_fill');
+    if (!fill) {
+      fill = document.createElement('div');
+      fill.id = '_ios_fill';
+      fill.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:white;z-index:0;pointer-events:none;';
+      document.body.appendChild(fill);
+    }
+    fill.style.height = gap + 'px';
+    fill.style.display = 'block';
+  }
   const user = USERS[currentUser];
   document.getElementById('userName').textContent = user.name;
   document.getElementById('userGreeting').textContent = `Hi ${user.emoji} `;
@@ -1143,14 +1158,8 @@ function fitTodayBacklogToViewport() {
   card.style.right = '';
   card.style.width = '';
   card.style.height = Math.max(window.innerHeight - top, 80) + 'px';
-  // DEBUG — remove once gap fixed
-  requestAnimationFrame(() => {
-    const rect = card.getBoundingClientRect();
-    let dbg = document.getElementById('_dbg');
-    if (!dbg) { dbg = document.createElement('div'); dbg.id='_dbg'; dbg.style.cssText='position:fixed;top:35%;left:10px;right:10px;background:rgba(0,0,0,0.92);color:lime;font-size:13px;padding:12px;border-radius:8px;z-index:9999;font-family:monospace;line-height:1.8'; document.body.appendChild(dbg); }
-    dbg.innerHTML='innerH='+window.innerHeight+'<br>visualVP='+(window.visualViewport?window.visualViewport.height:'n/a')+'<br>screenH='+window.screen.height+'<br>clientH='+document.documentElement.clientHeight+'<br>cardTop='+Math.round(top)+'<br>cardSetH='+Math.round(Math.max(window.innerHeight-top,80))+'<br>cardActualBot='+Math.round(rect.bottom)+'<tap to dismiss>';
-    dbg.onclick = () => dbg.remove();
-  }); { bEmpty.hidden = false; bList.style.display = 'none'; return; }
+
+  if (chores.length === 0) { bEmpty.hidden = false; bList.style.display = 'none'; return; }
   bEmpty.hidden = true; bList.style.display = '';
   chores.forEach(item => bList.appendChild(buildTodayBacklogRow(item)));
   attachTopFade(bList.closest('.today-backlog-scroll'));
