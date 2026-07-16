@@ -1143,8 +1143,14 @@ function fitTodayBacklogToViewport() {
   card.style.right = '';
   card.style.width = '';
   card.style.height = Math.max(window.innerHeight - top, 80) + 'px';
-
-  if (chores.length === 0) { bEmpty.hidden = false; bList.style.display = 'none'; return; }
+  // DEBUG — remove once gap fixed
+  requestAnimationFrame(() => {
+    const rect = card.getBoundingClientRect();
+    let dbg = document.getElementById('_dbg');
+    if (!dbg) { dbg = document.createElement('div'); dbg.id='_dbg'; dbg.style.cssText='position:fixed;top:35%;left:10px;right:10px;background:rgba(0,0,0,0.92);color:lime;font-size:13px;padding:12px;border-radius:8px;z-index:9999;font-family:monospace;line-height:1.8'; document.body.appendChild(dbg); }
+    dbg.innerHTML='innerH='+window.innerHeight+'<br>visualVP='+(window.visualViewport?window.visualViewport.height:'n/a')+'<br>screenH='+window.screen.height+'<br>clientH='+document.documentElement.clientHeight+'<br>cardTop='+Math.round(top)+'<br>cardSetH='+Math.round(Math.max(window.innerHeight-top,80))+'<br>cardActualBot='+Math.round(rect.bottom)+'<tap to dismiss>';
+    dbg.onclick = () => dbg.remove();
+  }); { bEmpty.hidden = false; bList.style.display = 'none'; return; }
   bEmpty.hidden = true; bList.style.display = '';
   chores.forEach(item => bList.appendChild(buildTodayBacklogRow(item)));
   attachTopFade(bList.closest('.today-backlog-scroll'));
