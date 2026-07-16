@@ -912,20 +912,13 @@ function attemptLogin() {
 async function showApp() {
   document.getElementById('loginScreen').hidden = true;
   document.getElementById('mainApp').hidden = false;
-  // On iOS standalone the viewport is shorter than the screen (e.g. 793px vs 852px).
-  // body clips at innerHeight so we can't extend a card past it.
-  // A position:fixed element escapes that clip and reaches the physical screen bottom.
-  const gap = Math.max(window.screen.height - window.innerHeight, 0);
+  // The layout viewport in iOS standalone is shorter than the physical screen
+  // (e.g. 793px vs 852px). Extend body to screen.height so its white background
+  // fills the gap area — body backgrounds paint within their box even in safe zones.
+  const gap = window.screen.height - window.innerHeight;
   if (gap > 0) {
-    let fill = document.getElementById('_ios_fill');
-    if (!fill) {
-      fill = document.createElement('div');
-      fill.id = '_ios_fill';
-      fill.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:white;z-index:0;pointer-events:none;';
-      document.body.appendChild(fill);
-    }
-    fill.style.height = gap + 'px';
-    fill.style.display = 'block';
+    document.body.style.height = window.screen.height + 'px';
+    document.body.style.background = 'white';
   }
   const user = USERS[currentUser];
   document.getElementById('userName').textContent = user.name;
