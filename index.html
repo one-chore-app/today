@@ -49,6 +49,8 @@
    setting it white fills the home indicator gap behind the white cards */
 html {
   background: white;
+  --debug-sat: env(safe-area-inset-top);
+  --debug-sab: env(safe-area-inset-bottom);
 }
 
 body {
@@ -762,6 +764,29 @@ body {
 
 [hidden] { display: none !important; }
 
+#debugOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  color: #0f0;
+  font-family: monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 20px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+#debugOverlay .debug-close {
+  display: block;
+  margin-top: 20px;
+  padding: 12px;
+  background: #222;
+  color: #fff;
+  border-radius: 8px;
+  text-align: center;
+  font-family: monospace;
+}
 </style>
 </head>
 <body>
@@ -875,6 +900,8 @@ body {
     </div>
   </div>
 
+  <div id="debugOverlay" hidden></div>
+
 <script>
 /* ====================== CONFIG ====================== */
 const SUPABASE_URL = "https://fjrbdbmxvwnusrqvfsms.supabase.co";
@@ -893,7 +920,76 @@ function todayStr() {
   return `${year}-${month}-${day}`;
 }
 
-/* ====================== AUTH ====================== */
+/* ====================== DEBUG OVERLAY ====================== */
+/* Visit yoursite.com/#debug to see live viewport measurements — helps
+   diagnose iOS viewport/safe-area quirks without guessing. */
+function renderDebugOverlay() {
+  const el = document.getElementById('debugOverlay');
+  const app = document.querySelector('.app');
+  const appRect = app ? app.getBoundingClientRect() : null;
+  const card = document.querySelector('.card-backlog-today');
+  const cardRect = card ? card.getBoundingClientRect() : null;
+  const cs = getComputedStyle(document.documentElement);
+  const vv = window.visualViewport;
+
+  const lines = [
+    '=== ONES DEBUG ===',
+    'time: ' + new Date().toISOString(),
+    '',
+    'navigator.standalone: ' + window.navigator.standalone,
+    'display-mode:standalone match: ' + (window.matchMedia('(display-mode: standalone)').matches),
+    'userAgent: ' + navigator.userAgent,
+    '',
+    '--- window ---',
+    'window.innerWidth/Height: ' + window.innerWidth + ' x ' + window.innerHeight,
+    'window.outerWidth/Height: ' + window.outerWidth + ' x ' + window.outerHeight,
+    'window.screen.width/height: ' + window.screen.width + ' x ' + window.screen.height,
+    'window.screen.availWidth/Height: ' + window.screen.availWidth + ' x ' + window.screen.availHeight,
+    'devicePixelRatio: ' + window.devicePixelRatio,
+    '',
+    '--- visualViewport ---',
+    vv ? ('width/height: ' + vv.width + ' x ' + vv.height) : 'not supported',
+    vv ? ('offsetLeft/Top: ' + vv.offsetLeft + ' / ' + vv.offsetTop) : '',
+    vv ? ('pageLeft/Top: ' + vv.pageLeft + ' / ' + vv.pageTop) : '',
+    vv ? ('scale: ' + vv.scale) : '',
+    '',
+    '--- document ---',
+    'documentElement.clientWidth/Height: ' + document.documentElement.clientWidth + ' x ' + document.documentElement.clientHeight,
+    'documentElement scrollWidth/Height: ' + document.documentElement.scrollWidth + ' x ' + document.documentElement.scrollHeight,
+    'body.getBoundingClientRect: ' + JSON.stringify(document.body.getBoundingClientRect()),
+    'body computed height: ' + getComputedStyle(document.body).height,
+    'body inline style.height: ' + document.body.style.height,
+    '',
+    '--- .app ---',
+    appRect ? ('rect: top=' + appRect.top.toFixed(1) + ' bottom=' + appRect.bottom.toFixed(1) + ' height=' + appRect.height.toFixed(1)) : 'not found',
+    app ? ('computed height: ' + getComputedStyle(app).height) : '',
+    app ? ('computed padding: ' + getComputedStyle(app).padding) : '',
+    '',
+    '--- .card-backlog-today (Today card) ---',
+    cardRect ? ('rect: top=' + cardRect.top.toFixed(1) + ' bottom=' + cardRect.bottom.toFixed(1) + ' height=' + cardRect.height.toFixed(1)) : 'not found (not on Today view)',
+    card ? ('inline style.height: ' + card.style.height) : '',
+    card ? ('computed height: ' + getComputedStyle(card).height) : '',
+    '',
+    '--- gap check ---',
+    (cardRect ? ('screen bottom (' + window.screen.height + ') minus card bottom (' + cardRect.bottom.toFixed(1) + ') = ' + (window.screen.height - cardRect.bottom).toFixed(1) + 'px unaccounted') : ''),
+    (cardRect && vv ? ('visualViewport bottom (' + vv.height.toFixed(1) + ') minus card bottom (' + cardRect.bottom.toFixed(1) + ') = ' + (vv.height - cardRect.bottom).toFixed(1) + 'px unaccounted') : ''),
+    '',
+    '--- safe-area-inset (via env(), exposed as CSS vars) ---',
+    'sat (top): ' + cs.getPropertyValue('--debug-sat'),
+    'sab (bottom): ' + cs.getPropertyValue('--debug-sab'),
+  ];
+
+  el.innerHTML = lines.join('\n') + '\n\n<div class="debug-close" onclick="document.getElementById(\'debugOverlay\').hidden = true;">Close (tap here)</div>';
+  el.hidden = false;
+}
+window.addEventListener('hashchange', () => {
+  if (location.hash.startsWith('#debug')) renderDebugOverlay();
+});
+if (location.hash.startsWith('#debug')) {
+  window.addEventListener('load', () => setTimeout(renderDebugOverlay, 500));
+}
+
+
 function checkAuth() {
   const saved = localStorage.getItem('ones_user');
   if (saved && USERS[saved]) { currentUser = saved; showApp(); }
@@ -911,16 +1007,30 @@ function attemptLogin() {
     document.getElementById('loginError').textContent = 'Incorrect password.';
   }
 }
+// iOS WebKit bug: in standalone (Home Screen) display mode, dvh / window.innerHeight
+// under-report the true visible screen height by roughly the home-indicator safe
+// area, even with viewport-fit=cover — the page can still paint into that strip,
+// it's just excluded from layout math. Two things are needed to compensate:
+//   1. body has overflow:hidden sized to that same short dvh value, so anything
+//      painted past it gets clipped — body's own box needs stretching too, not
+//      just whatever's inside it.
+//   2. Any manual height math (card sizing) needs the *true* height, which
+//      window.screen.height reliably reports in standalone mode — there's no
+//      address bar/toolbar there to make it inaccurate, unlike in a Safari tab,
+//      where we deliberately do NOT use it (see viewportBottom() below).
+const IS_STANDALONE = window.navigator.standalone === true;
+
+function syncStandaloneHeight() {
+  if (!IS_STANDALONE) return;
+  document.body.style.height = window.screen.height + 'px';
+}
+syncStandaloneHeight();
+window.addEventListener('resize', syncStandaloneHeight);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', syncStandaloneHeight);
+
 async function showApp() {
   document.getElementById('loginScreen').hidden = true;
   document.getElementById('mainApp').hidden = false;
-  // NOTE: we used to extend body.style.height to window.screen.height here to
-  // paper over a gap below the safe area in iOS standalone mode. That relied on
-  // window.screen.height (the physical device screen, which never reflects the
-  // real browser/PWA viewport) and fought with .app's own 100dvh sizing — which,
-  // combined with viewport-fit=cover on the <meta viewport> tag, already extends
-  // correctly behind the home indicator on its own. Removed so body/.app just
-  // trust dvh, matching how the rest of the layout (and Shelved) works.
   const user = USERS[currentUser];
   document.getElementById('userName').textContent = user.name;
   document.getElementById('userGreeting').textContent = `Hi ${user.emoji} `;
@@ -1444,13 +1554,13 @@ async function addNewChore() {
   chores.push({ id: 'local-' + Date.now(), name: 'New Item', category: '' });
 }
 
-// The .app element is already sized correctly to the real, current viewport
-// via CSS (height:100dvh, with viewport-fit=cover accounting for safe areas).
-// That means its rendered bottom edge is the one trustworthy source for "how
-// much vertical space is actually available" — unlike window.screen.height,
-// which is the physical device screen and never reflects Safari's toolbar,
-// standalone mode, or anything else that changes the visible area.
+// In standalone mode, .app's own dvh-based box is subject to the same
+// under-reporting bug described above, so we can't trust it as the source of
+// truth there — window.screen.height is the accurate one. In a regular Safari
+// tab, it's the opposite: window.screen.height overshoots whenever the address
+// bar/toolbar is visible, so we use .app's real, dynamically-correct dvh box.
 function viewportBottom() {
+  if (IS_STANDALONE) return window.screen.height;
   const app = document.querySelector('.app');
   return app ? app.getBoundingClientRect().bottom : window.innerHeight;
 }
